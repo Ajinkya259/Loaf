@@ -259,6 +259,23 @@ SPRITE_ORTHO = 2.3          # horizontal world coverage (640 is the larger dimen
 SPRITE_CAM_Z = 0.83         # puts ground z=0 about 25px above the bottom edge
 SPRITE_CAM_Y = -9.0
 
+# World units per rendered pixel - the conversion the app-facing numbers below use.
+SPRITE_UPP = SPRITE_ORTHO / SPRITE_W        # 0.00359 world units / px
+
+# Profile recentring. The model is deliberately NOT symmetric about its own Y axis -
+# the head projects well forward of the body - so rotating it into profile put the
+# silhouette a measured +62px right of the canvas centre (side_idle +64, walk frames
+# +49.5..+69.5, mean +61.6) while the front views sat dead on 320.
+#
+# That mismatch is a real bug, not a cosmetic one. The app anchors bottom-centre and
+# mirrors for leftward travel with scaleEffect(x: -1) about the window centre, so an
+# off-centre profile teleports her ~124px sideways every single time she turns around.
+#
+# Applied in world X and ONLY for side renders (see face()). It cannot be baked into
+# the model, because in the front view world X *is* screen X and the same shift would
+# push the front views off-centre instead.
+SPRITE_SIDE_DX = -62 * SPRITE_UPP
+
 # Landscape, not lil-cleo's portrait 512x640: Brick is a humanoid minifig and is taller
 # than he is wide in every pose, but a quadruped cat in profile is the opposite - 2.03
 # wide against 1.56 tall. Portrait cannot hold the standing profile without shrinking
@@ -340,8 +357,13 @@ def face(arm, side):
     profile facing screen-right. Only right-facing sprites are rendered - the app
     mirrors them for leftward travel, exactly as lil-cleo's ImageCharacterView does
     with scaleEffect(x: facing).
+
+    Side renders also get SPRITE_SIDE_DX applied in world X, which recentres the
+    profile silhouette on the canvas. Front renders must NOT get it - there, world X
+    is screen X, so the same shift would knock the front views off centre.
     """
     arm.rotation_euler[2] = math.radians(90 if side else 0)
+    arm.location[0] = SPRITE_SIDE_DX if side else 0.0
 
 
 def render_to(path):
