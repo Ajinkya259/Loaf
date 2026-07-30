@@ -1,5 +1,53 @@
 import SwiftUI
 
+/// Small symbols drawn ABOVE her to say what a silhouette can't.
+///
+/// The lesson these come from is worth stating once: the sleeping pose took seven
+/// passes to read and none of them worked, because a cat lying on the floor is a solid
+/// mass with no negative space inside its outline - and at 160x128 the outline is the
+/// entire read. A drifting "z" fixed it instantly, because it does not depend on
+/// silhouette at all. Stress has the same problem for the same reason, so it gets the
+/// same answer.
+///
+/// Both marks share a treatment on purpose - white fill, hard black outline - so they
+/// read as one visual language rather than two unrelated effects, and so both survive
+/// a desktop of any colour. A single soft halo is not enough: white vanishes on a light
+/// wallpaper and a dark glyph vanishes on a dark one.
+
+/// A bold "!" flashing over a frightened cat.
+struct AlarmView: View {
+    let scale: CGFloat
+    let facing: CGFloat
+    let t: TimeInterval
+
+    /// Fast. The sleeping "z"s take 3.2s each because slow reads as calm; alarm has to
+    /// be the opposite, and a mark that pulses quickly reads as urgent before you have
+    /// consciously registered what the symbol is.
+    private static let beat = 0.62
+
+    var body: some View {
+        let p = (t / Self.beat).truncatingRemainder(dividingBy: 1)
+        // Snaps in, holds, drops away - not a smooth sine, which would read as
+        // breathing. The hard attack is the point.
+        let pop = p < 0.16 ? p / 0.16 : 1.0
+        let alpha = p < 0.72 ? 1.0 : max(0, (1 - p) / 0.28)
+        Text("!")
+            .font(.system(size: 22 * scale * (0.55 + 0.45 * pop), weight: .black,
+                          design: .rounded))
+            .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.9), radius: 0, x:  1.2 * scale, y: 0)
+            .shadow(color: .black.opacity(0.9), radius: 0, x: -1.2 * scale, y: 0)
+            .shadow(color: .black.opacity(0.9), radius: 0, x: 0, y:  1.2 * scale)
+            .shadow(color: .black.opacity(0.9), radius: 0, x: 0, y: -1.2 * scale)
+            .opacity(alpha)
+            // Over her HEAD, which in this pose is low and forward - not over the
+            // arch, which is the tallest part of her but not the part you look at.
+            .offset(x: facing * 0.24 * 160 * scale, y: -0.30 * 128 * scale)
+            .frame(width: 160 * scale, height: 128 * scale)
+            .allowsHitTesting(false)
+    }
+}
+
 /// The little "z"s drifting up off a sleeping cat.
 ///
 /// This lives in the app rather than in the sprites, and that is the whole design.

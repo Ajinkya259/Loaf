@@ -37,6 +37,16 @@ extension AppDelegate {
         let (minX, maxX) = walkBounds(screen: screen, width: charSize.width)
         let y = dockTopY(screen) - footInset
 
+        // The machine being in trouble outranks whatever she was doing. She stops where
+        // she is and bristles - a cat that keeps strolling while alarmed reads as a bug,
+        // not as a reaction.
+        if engine.overloaded, LoafState.stressed.available {
+            engine.setAuto(.stressed)
+            strollSpeed = 0
+            place(loafX, y)
+            return
+        }
+
         switch activity {
         case .strolling:
             strollStep(minX: minX, maxX: maxX, y: y)

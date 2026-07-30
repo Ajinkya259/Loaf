@@ -55,10 +55,14 @@ ARCH = [
 ]
 SLAB_OVERLAP = 0.012
 
-HEAD_Y, HEAD_Z = -0.62, 0.52     # z 0.19..0.85 - held LOW, below the arch
+# HEAD PULLED BACK INTO HER SHOULDERS, not reaching forward. At -0.62 it extended past
+# the chest and the whole silhouette sloped down toward it, which reads as a grazing
+# animal - a deer at a stream, not a frightened cat. Retracting the head is what
+# frightened animals actually do, and it lets the arch dominate the outline.
+HEAD_Y, HEAD_Z = -0.44, 0.50     # z 0.17..0.83 - held LOW, below the arch
 LEG_H = 0.44                     # stiff and straight, not crouched
 
-STRESS_DX = -52 * SPRITE_UPP
+STRESS_DX = -34 * SPRITE_UPP
 
 
 def wipe():
@@ -87,21 +91,21 @@ def build_model():
     # Chest, filling from the floor up to her chin. Without it the head hangs off the
     # front of the arch with daylight under it, and at sprite size background inside
     # the silhouette is not a gap - it is a hole.
-    box("Chest", 0, -0.48, 0.34, girth(BODY_W - 0.04), 0.36, 0.68, m_coat)
+    box("Chest", 0, -0.40, 0.34, girth(BODY_W - 0.04), 0.34, 0.68, m_coat)
     # NECK, bridging her head to the front of the arch.
     #
     # Without it the arch pulls back faster than the head does and a slot of background
     # opens between them at shoulder height - and at sprite size background inside the
     # silhouette is not a gap, it is a hole. She read as two separate objects.
-    box("Neck", 0, -0.30, 0.62, girth(BODY_W - 0.08), 0.32, 0.36, m_coat)
+    box("Neck", 0, -0.24, 0.62, girth(BODY_W - 0.08), 0.30, 0.36, m_coat)
 
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k,
                eyes="wide", ears="flat")
 
     # Short braced legs. Crouched, not standing - she is making herself small.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("LegF" + sfx, sx * 0.17, -0.36, LEG_H / 2, 0.20, 0.20, LEG_H, m_under)
-        box("ToeF" + sfx, sx * 0.17, -0.39, 0.08, 0.21, 0.25, 0.16, m_acc)
+        box("LegF" + sfx, sx * 0.17, -0.30, LEG_H / 2, 0.20, 0.20, LEG_H, m_under)
+        box("ToeF" + sfx, sx * 0.17, -0.33, 0.08, 0.21, 0.25, 0.16, m_acc)
         box("LegB" + sfx, sx * 0.18,  0.34, LEG_H / 2, 0.23, 0.23, LEG_H, m_under)
         box("ToeB" + sfx, sx * 0.18,  0.37, 0.08, 0.24, 0.27, 0.16, m_acc)
 

@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     let settings = Settings()
     let engine = CatEngine()
+    lazy var systemMonitor = SystemMonitor()
 
     var characterWindow: CharacterWindow!
     var statusItem: NSStatusItem!
@@ -105,6 +106,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             beginStroll(seconds: Double.random(in: 20...40))
             startWandering()
         }
+
+        // Machine load drives her posture. Task load drives her body (the weight
+        // directories) - deliberately separate axes, so she can be fat AND frightened,
+        // which is exactly the "too much to do and the laptop is dying" case.
+        systemMonitor.onChange = { [weak self] hot in
+            guard let self else { return }
+            engine.overloaded = hot
+            if !hot { beginStroll(seconds: Double.random(in: 10...20)) }
+        }
+        if settings.reactToSystem { systemMonitor.start() }
     }
 
     // MARK: The menu-bar control
@@ -169,6 +180,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         weightRoot.submenu = weightMenu
         menu.addItem(weightRoot)
 
+        let react = NSMenuItem(title: "React to system load",
+                               action: #selector(toggleReact(_:)), keyEquivalent: "")
+        react.target = self
+        react.state = settings.reactToSystem ? .on : .off
+        menu.addItem(react)
+
         let sizeMenu = NSMenu()
         for (name, value) in Settings.sizePresets {
             let item = NSMenuItem(title: name, action: #selector(pickSize(_:)), keyEquivalent: "")
@@ -205,6 +222,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // confusing default when you're trying to look at her.
         engine.facing = 1
         engine.pin(s)
+    }
+
+    @objc private func toggleReact(_ sender: NSMenuItem) {
+        settings.reactToSystem.toggle()
+        sender.state = settings.reactToSystem ? .on : .off
+        if settings.reactToSystem { systemMonitor.start() } else { systemMonitor.stop() }
     }
 
     @objc private func pickWeight(_ sender: NSMenuItem) {
