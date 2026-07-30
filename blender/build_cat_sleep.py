@@ -46,12 +46,16 @@ BLEND = os.path.join(HERE, "cat_sleep.blend")
 
 # Front = -Y, up = +Z, ground = z 0. Everything is LOW - nothing reaches half the
 # height of the profile sit, which is what says "flat out" at a glance.
-HEAD_Y,   HEAD_Z   = -0.62, 0.52    # z 0.19..0.85 - clear above the extended legs
-CHEST_Y,  CHEST_Z  = -0.34, 0.16
-BODY_Y,   BODY_Z   =  0.20, 0.20
-HAUNCH_Y, HAUNCH_Z =  0.58, 0.22
+# HER HEAD IS LOW. At z 0.52 it stood 0.45 clear of a 0.40-tall body and the pose read
+# as a bottle - a tall vertical slab on a flat base. A cat lying on its side keeps its
+# head near body height with the EARS as the highest point, and the whole silhouette
+# stays long and low: 2.15 wide against 0.88 tall.
+HEAD_Y,   HEAD_Z   = -0.56, 0.38    # z 0.05..0.71, ears to 0.90
+NECK_Y,   NECK_Z   = -0.24, 0.14    # z 0..0.28 - LOW, so a notch opens above it
+BODY_Y,   BODY_Z   =  0.24, 0.23    # z 0..0.46
+HAUNCH_Y, HAUNCH_Z =  0.50, 0.22
 
-SLEEP_DX = -6 * SPRITE_UPP
+SLEEP_DX = -8 * SPRITE_UPP
 
 
 def wipe():
@@ -74,13 +78,23 @@ def build_model():
 
     # A long low body: haunch, barrel, chest. Slightly different heights so the top
     # edge has some shape rather than being one flat plank.
-    box("Haunch", 0, HAUNCH_Y, HAUNCH_Z, BODY_W + 0.04, 0.40, 0.44, m_coat)
-    box("Body",   0, BODY_Y,   BODY_Z,   BODY_W,        0.80, 0.40, m_coat)
-    box("Chest",  0, CHEST_Y,  CHEST_Z,  BODY_W - 0.04, 0.44, 0.32, m_coat)
+    box("Haunch", 0, HAUNCH_Y, HAUNCH_Z, BODY_W + 0.04, 0.42, 0.44, m_coat)
+    box("Body",   0, BODY_Y,   BODY_Z,   BODY_W,        0.66, 0.46, m_coat)
+    # THE NECK, and it is the point of this layout. It is deliberately LOW - it joins
+    # the head to the body along the floor and stops at z 0.28, which opens a notch of
+    # background above it between the back of her head and the front of her body.
+    #
+    # Without that notch head and body are one mass, and then the ear on top reads as a
+    # horn growing out of a lump rather than as an ear on a head. It has to be a NOTCH
+    # and not a gap, though: pulling the body back without a neck under it punches a
+    # hole clean through her, which at sprite size is just a hole.
+    box("Neck", 0, NECK_Y, NECK_Z, BODY_W - 0.06, 0.30, 0.28, m_coat)
 
-    # Pale belly along the bottom. She is lying on her side, so this is the part of her
-    # actually facing us - the one pose where the pale underside should be generous.
-    box("Belly", 0, 0.10, 0.055, BODY_W + 0.01, 0.96, 0.11, m_under)
+    # Pale belly, but SHORT and central. She is lying on her side so the pale underside
+    # should show - it just must not run the full length, because then it joins the
+    # pale legs at both ends into one unbroken bar along the floor, which reads as a
+    # shadow she is sitting on rather than as any part of her.
+    box("Belly", 0, 0.22, 0.05, BODY_W + 0.01, 0.60, 0.10, m_under)
 
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k, eyes="closed")
 
@@ -90,14 +104,17 @@ def build_model():
     # 0.18) because the head is wider in X, so it is nearer the camera and would draw
     # straight over them otherwise - which is exactly what killed the visible paws in
     # the loaf version.
+    # They now reach out from under her CHIN rather than from under her head, which is
+    # what lets the head sit low. Forward of the head's front edge there is nothing to
+    # occlude them, so the clearance problem disappears instead of being worked around.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("LegF" + sfx, sx * 0.14, -0.74, 0.09, 0.20, 0.44, 0.18, m_under)
-        box("ToeF" + sfx, sx * 0.14, -0.97, 0.08, 0.21, 0.14, 0.16, m_acc)
+        box("LegF" + sfx, sx * 0.14, -0.94, 0.09, 0.20, 0.30, 0.18, m_under)
+        box("ToeF" + sfx, sx * 0.14, -1.05, 0.08, 0.21, 0.14, 0.16, m_acc)
 
     # A hind leg flopped out behind, so the back half is not a bare block.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("LegB" + sfx, sx * 0.15, 0.62, 0.09, 0.22, 0.38, 0.18, m_under)
-        box("ToeB" + sfx, sx * 0.15, 0.84, 0.08, 0.23, 0.14, 0.16, m_acc)
+        box("LegB" + sfx, sx * 0.15, 0.66, 0.09, 0.22, 0.34, 0.18, m_under)
+        box("ToeB" + sfx, sx * 0.15, 0.86, 0.08, 0.23, 0.14, 0.16, m_acc)
 
     # TAIL laid out long behind her with a lazy flick at the tip. Behind is empty
     # background, so it always reads - and a straight-out tail is what a stretched-out
@@ -105,7 +122,7 @@ def build_model():
     # Kept inside the canvas on purpose. Stretched out she spans 2.05 world units
     # against the sprite's 2.3 - the widest state by a long way, and the first version
     # reached 630px of a 640px frame, one tweak from clipping.
-    tail_curve([(0.76, 0.14), (0.88, 0.10), (0.99, 0.085), (1.08, 0.10), (1.14, 0.16)],
+    tail_curve([(0.60, 0.28), (0.74, 0.20), (0.86, 0.15), (0.95, 0.16), (1.00, 0.24)],
                -0.30, 0.14, 0.10, m_coat)
 
 
@@ -115,15 +132,15 @@ BONES = {
     "root":     ((0, 0.30, 0),               (0, 0.30, 0.16)),
     "spine":    ((0, 0.50, 0.20),            (0, -0.30, 0.24)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
-    "tailBase": ((-0.30, 0.76, 0.14),        (-0.30, 0.99, 0.085)),
-    "tailTip":  ((-0.30, 0.99, 0.085),       (-0.30, 1.14, 0.16)),
+    "tailBase": ((-0.30, 0.60, 0.28),        (-0.30, 0.86, 0.15)),
+    "tailTip":  ((-0.30, 0.86, 0.15),        (-0.30, 1.00, 0.24)),
 }
 BONE_PARENT = {"spine": "root", "head": "spine",
                "tailBase": "root", "tailTip": "tailBase"}
 TAIL_PARTS = []
 PART_BONE = {
     "root":  ["Haunch", "LegBL", "LegBR", "ToeBL", "ToeBR"],
-    "spine": ["Body", "Chest", "Belly", "LegFL", "LegFR", "ToeFL", "ToeFR"],
+    "spine": ["Body", "Neck", "Belly", "LegFL", "LegFR", "ToeFL", "ToeFR"],
     "head":  FACE_PARTS,
     "tailBase": [],
     "tailTip":  [],
