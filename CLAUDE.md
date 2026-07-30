@@ -260,7 +260,7 @@ beats hue. Hue-shift shadows cooler rather than just darkening them.
 ## 5. The app
 
 SwiftPM executable, macOS 14+, **zero third-party dependencies**, AppKit borderless
-window + SwiftUI character view, accessory app (no dock icon) with a 🍞 menu-bar item.
+window + SwiftUI character view, accessory app (no dock icon) with a 🐾 menu-bar item.
 
 ```bash
 make run                    # build + launch

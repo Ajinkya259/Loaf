@@ -15,6 +15,14 @@ if let out = ProcessInfo.processInfo.environment["LOAF_SNAPSHOT"] {
     exit(ok ? 0 : 1)
 }
 
+// LOAF_ICON=/tmp/paw.png dumps the menu-bar icon, magnified, so it can actually be
+// looked at - a template image is invisible to a normal screenshot of the menu bar.
+if let out = ProcessInfo.processInfo.environment["LOAF_ICON"] {
+    let ok = MainActor.assumeIsolated { MenuBarIcon.dump(to: out) }
+    FileHandle.standardError.write(Data((ok ? "wrote \(out)\n" : "failed\n").utf8))
+    exit(ok ? 0 : 1)
+}
+
 let app = NSApplication.shared
 let delegate = MainActor.assumeIsolated { AppDelegate() }   // top-level code is main-thread
 app.delegate = delegate

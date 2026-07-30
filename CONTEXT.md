@@ -14,7 +14,7 @@ make run                    # build + launch; she appears on the dock
 make stop
 ```
 
-Everything is controlled from the **🍞** in the menu bar: pick a state, Weight, Size,
+Everything is controlled from the **🐾** in the menu bar: pick a state, Weight, Size,
 Show, React to system load.
 
 ```bash

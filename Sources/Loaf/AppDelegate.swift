@@ -171,7 +171,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = "🍞"
+        // A drawn template paw rather than an emoji. An emoji ignores the menu bar's
+        // light/dark and highlight states, and always renders at whatever size and
+        // colour the font decides.
+        statusItem.button?.image = MenuBarIcon.paw()
+        statusItem.button?.image?.accessibilityDescription = "Loaf"
         let menu = NSMenu()
         menu.delegate = self          // rebuilt on open so checkmarks are never stale
         statusItem.menu = menu
