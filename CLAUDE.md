@@ -86,7 +86,10 @@ Sources/Loaf/
   CatView.swift        sprite rendering, mirroring, procedural bob
   Sprites.swift        bundle loading, cycle counting, caching
   Settings.swift       persisted scale + wander toggle
-  Resources/sprites/   ← Blender renders STRAIGHT INTO HERE. No copy step (see §3).
+  SystemMonitor.swift  edge-triggered CPU + memory pressure
+  MoodMarks.swift      the "z"s and the "!" drawn above her
+  Snapshot.swift       LOAF_SNAPSHOT — rasterise the real view to a PNG
+  Resources/sprites/<weight>/   ← Blender renders STRAIGHT INTO HERE (§3, §5)
 
 SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either side.
 Idea.md                original brain-dump. Superseded in places (see §6).
@@ -212,10 +215,18 @@ down. An oversized head on a small body is the whole cute-quadruped trick, and i
 applies to every pose. This is currently *wrong* in `build_cat_sit.py` and is the
 single most likely reason the front sit reads weaker than the standing views.
 
-### Open: the profile sit doesn't work yet
+### Open items
 
-`build_cat_sit_side.py` exists and renders `sit_side.png`, but after four passes it
-still reads as a **kangaroo**, not a sitting cat. Not wired into the app.
+**Task load has no real source yet** — the Weight menu sets it by hand.
+
+**The walk is a pendulum, not a walk** (§7), and jump frames 2–5 sit 4–8px below the
+ground line while airborne. Both recorded with per-frame numbers in
+SPRITE_CONTRACT.md.
+
+### Superseded: the profile sit
+
+**Fixed** — it took nine passes and the answer was never in the numbers. Kept below
+because the failure modes are the transferable part.
 
 The reasoning behind it is sound and worth keeping: profile is the informative angle
 for a quadruped (head-on, a sitting cat hides its whole body behind its head), and
@@ -261,9 +272,64 @@ The zero-dependency rule is deliberate and worth holding. She runs all day, ever
 every dependency is memory she holds the whole time, launch time on every login, and
 supply chain for something that needs nothing but AppKit, SwiftUI and a folder of PNGs.
 
-**Phase 1 is done** — window on the dock, stroll/dwell/corner-sit state machine, sprite
-cycling, menu-bar state picker. Measured: 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS,
-zero permissions requested.
+**Working today:** window on the dock; stroll → dwell → corner sit → sleep; jump with an
+app-driven arc; eight states across three body weights (72 sprites); CPU/memory
+reactions. 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS, **zero permissions requested**.
+
+### The two axes of the mechanic
+
+They are deliberately separate, so they compose — she can be fat *and* frightened, which
+is the "too much to do and the laptop is dying" case.
+
+| Signal | Changes | How |
+|---|---|---|
+| Task load | her **body** | weight directory, applies to every pose |
+| Machine load | her **posture** | `stressed` state, edge-triggered |
+
+**Weight is a DIRECTORY, not a filename suffix** — `sprites/<weight>/<state>.png`.
+Fatness applies to every pose, so as a suffix it is a cross product that multiplies
+again with each new state (the 64-sprite trap). As a directory the contract inside each
+folder is identical: a new state gets every weight free, a new weight gets every state
+free. `Sprites.weight` is the only thing that knows.
+
+How weight reads depends on the camera and had to be done per pose: **profile** is the
+belly dropping (the back line stays pinned and the body grows downward, so her legs
+appear to shorten); **front** is pure width; the **profile sit** swells in Y, because
+there Y is screen-width.
+
+**Task load is still set by hand** from the Weight menu. EventKit Reminders is the next
+step — note it needs `requestFullAccessToReminders()` and
+`NSRemindersFullAccessUsageDescription`, a *different* permission from FlyThrough's
+calendar access.
+
+### Marks drawn above her
+
+`MoodMarks.swift` — drifting "z"s for sleep, a flashing "!" for stress.
+
+These are not decoration, and the reason is the most useful thing learned about this art
+style: **a low, solid pose has no negative space inside its outline, and at 160×128 the
+outline is the entire read.** The gaps between her legs are most of why the idle sprite
+works. Sleep took seven passes and none of them fixed it; a drifting "z" did, instantly,
+because it doesn't depend on silhouette at all. Stress has the same problem and gets the
+same answer.
+
+Both share a treatment — white fill, hard black outline from four zero-radius shadows —
+so they read as one language and survive a desktop of any colour. A single soft halo is
+not enough: white vanishes on a light wallpaper, dark vanishes on a dark one. The "z"s
+shipped invisible for exactly this reason.
+
+### Seeing what the APP draws
+
+```bash
+LOAF_SNAPSHOT=/tmp/x.png LOAF_STATE=stressed ./.build/debug/Loaf
+```
+
+Rasterises the live SwiftUI view and exits, over a **white/dark split background**.
+
+This exists because there was no way to check anything the app drew on top of a sprite.
+Every visual check went through Blender's previews, which show only the sprite — so the
+"z"s shipped invisible and the user found out, not the tooling. A plain background would
+have hidden it too, hence the split.
 
 Two design points that aren't obvious from reading the code:
 
