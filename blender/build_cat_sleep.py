@@ -1,34 +1,33 @@
-"""Build Loaf CURLED UP ASLEEP, in profile.
+"""Build Loaf ASLEEP - stretched out on her side, in profile.
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cat_sleep.py
 
-The LOAF position - paws folded underneath, body a low mound, head up, eyes shut. The
-pose the app is named after, and the one a cat actually settles into on a desk.
+WHY STRETCHED OUT, AFTER CURLED AND LOAFED BOTH FAILED.
 
-WHY NOT CURLED. Curled up is the classic sleeping position and it was built first, and
-at 160x128 it was unreadable - a lumpy orange rock with a dark dash on it. The reason
-is structural, not a tuning problem: curling TUCKS THE HEAD INTO THE BODY, and the head
-is the single feature that identifies her as a cat. Ears, muzzle, eye, the step from
-head to shoulder - all of it disappears into one mass, and flat voxel colour has no
-fur, no shading and no outline to recover it with. A photograph of a curled cat reads
-because of texture this style does not have.
+Curled up was built first - the classic sleeping position - and read as an orange rock.
+The loaf was built second and read as an orange rock with a dash on it. Both failed for
+the same reason, and it is not a tuning problem:
 
-The loaf keeps the head clear of the body, so ears and a shut eye still carry the
-species, while the low wide mound and the absence of any leg still carry the sleep.
+    A RESTING CAT IS A SINGLE ROUNDED MASS, AND A SINGLE ROUNDED MASS HAS NO OUTLINE
+    FEATURES. At 160x128 with flat colour, no fur and no line art, the outline is the
+    entire read. A photo of a curled cat works because of texture this style has none
+    of. Curling actively removes the only things that identify her - it tucks the head
+    into the body and hides every limb.
 
-Two things carry the read, and neither is the body:
+Stretched out is the opposite, and that is the whole argument for it. Lying on her
+side, the pose puts BACK the features the other two hid: front legs reaching forward
+clear of everything, a head that is a distinct bump at the front, a hind leg, and a
+tail laid out long behind. Six or seven separate things on the outline instead of one
+lump. It is also unmistakably asleep - nothing awake lies flat and stretched - and
+maximally different from every other state she has, which are all upright.
 
-  * CLOSED EYES. A low curled body on its own reads as a cat resting. The shut lid is
-    what makes it read as a cat ASLEEP. build_face(eyes="closed") keeps the open eye's
-    width and centre so she doesn't appear to squint or shift her gaze between states.
-  * THE TAIL WRAPPED PAST HER NOSE. Everything else here is one orange mass, so the
-    tail is the only feature breaking the outline. It runs along the ground at
-    x=-0.45 - outside even the head in X, on the camera side - and its tip carries on
-    past her face into empty space, where nothing can occlude it, then hooks up.
+The two rules the other poses taught, both obeyed here:
 
-Built as horizontal slabs of falling length, the same way the profile sit is: a curve
-drawn as many small regular steps rather than a few big ones. See that file, and
-CLAUDE.md, for why nine passes were needed to learn it.
+  * VALUE CONTRAST, not just outline. Every state that reads well has three values in
+    it: orange body, pale legs, dark boots. The loaf had one and stayed a blob however
+    good its silhouette got.
+  * The legs must sit BELOW the head, not beside it. In profile the head is wider in X
+    than the legs, so it is nearer the camera and would simply draw over them.
 """
 import bpy, os, sys, math
 from mathutils import Vector
@@ -45,36 +44,14 @@ from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K, tail_curve,
 HERE = os.path.dirname(os.path.abspath(__file__))
 BLEND = os.path.join(HERE, "cat_sleep.blend")
 
-# Front = -Y, up = +Z, ground = z 0.
-#
-# THE MOUND, generated as an ELLIPSE rather than hand-listed.
-#
-# Hand-listed, the top slabs jumped 0.10 and 0.16 in Y - 28 and 45 render pixels - and
-# those two steps were the whole staircase you could see. An ellipse spaces them the
-# way a curve actually does: tiny near the floor, growing toward the top. Nine slabs
-# instead of six for the same reason.
-#
-# Low and clearly WIDER THAN TALL, against the profile sit's 1.54 height. That
-# difference is what says "resting" before any detail is read.
-MOUND_Y, MOUND_A, MOUND_H = 0.11, 0.50, 0.60
-MOUND_TOP, MOUND_N = 0.52, 9
-MOUND = []
-for _i in range(MOUND_N):
-    _z0 = MOUND_TOP * _i / MOUND_N
-    _z1 = MOUND_TOP * (_i + 1) / MOUND_N
-    _half = MOUND_A * math.sqrt(max(0.0, 1 - (((_z0 + _z1) / 2) / MOUND_H) ** 2))
-    MOUND.append((_z0, _z1, MOUND_Y - _half, MOUND_Y + _half))
+# Front = -Y, up = +Z, ground = z 0. Everything is LOW - nothing reaches half the
+# height of the profile sit, which is what says "flat out" at a glance.
+HEAD_Y,   HEAD_Z   = -0.62, 0.52    # z 0.19..0.85 - clear above the extended legs
+CHEST_Y,  CHEST_Z  = -0.34, 0.16
+BODY_Y,   BODY_Z   =  0.20, 0.20
+HAUNCH_Y, HAUNCH_Z =  0.58, 0.22
 
-SLAB_OVERLAP = 0.012   # added UPWARD, never centred, or the bottom slab breaks z=0
-
-# Head UP and forward, resting on the front of the mound. Same size as every other
-# pose - she is the same cat asleep as awake.
-HEAD_Y, HEAD_Z = -0.50, 0.74     # z 0.41..1.07
-
-TAIL_X = -0.45   # outside even the head (+-0.39) in X, and on the camera side
-
-# Measured after the first render.
-SLEEP_DX = -42 * SPRITE_UPP
+SLEEP_DX = -6 * SPRITE_UPP
 
 
 def wipe():
@@ -95,101 +72,70 @@ def build_model():
     m_w     = material("FaceW", FACE_W, rough=1.0)
     m_k     = material("FaceK", FACE_K, rough=1.0)
 
-    for i, (z0, z1, y0, y1) in enumerate(MOUND):
-        box(f"Body{i}", 0, (y0 + y1) / 2, (z0 + z1) / 2 + SLAB_OVERLAP / 2,
-            BODY_W, y1 - y0, z1 - z0 + SLAB_OVERLAP, m_coat)
+    # A long low body: haunch, barrel, chest. Slightly different heights so the top
+    # edge has some shape rather than being one flat plank.
+    box("Haunch", 0, HAUNCH_Y, HAUNCH_Z, BODY_W + 0.04, 0.40, 0.44, m_coat)
+    box("Body",   0, BODY_Y,   BODY_Z,   BODY_W,        0.80, 0.40, m_coat)
+    box("Chest",  0, CHEST_Y,  CHEST_Z,  BODY_W - 0.04, 0.44, 0.32, m_coat)
 
-    # Eyes shut. This is the state, not a detail - see the module docstring.
+    # Pale belly along the bottom. She is lying on her side, so this is the part of her
+    # actually facing us - the one pose where the pale underside should be generous.
+    box("Belly", 0, 0.10, 0.055, BODY_W + 0.01, 0.96, 0.11, m_under)
+
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k, eyes="closed")
 
-    # CHEST, filling from the floor up to her chin.
+    # FRONT LEGS REACHING FORWARD, flat along the ground and out past her nose.
     #
-    # Without it the head hangs forward of the mound with daylight underneath, and that
-    # gap does not read as a neck - it reads as a hole punched through her, because at
-    # sprite size a patch of background inside the silhouette is just a hole. A loafing
-    # cat's chest does reach the ground; the head rests on top of it.
-    # Deep enough to MEET the mound. At 0.34 it stopped at y=-0.37 while the mound
-    # front had already pulled back to -0.26, leaving a slot of background between them
-    # at shoulder height - another hole punched through her.
-    box("Chest", 0, -0.50, 0.22, BODY_W - 0.04, 0.48, 0.44, m_coat)
-
-    # Pale bib down the chest front.
-    box("Bib", 0, -0.74, 0.30, 0.26, 0.06, 0.32, m_under)
-
-    # TUCKED PAWS, peeking over the wrapped tail.
-    #
-    # Value contrast is what this pose was missing, not outline. Every state that reads
-    # well has three values in it - orange body, pale legs, dark boots - and sleep had
-    # one, which is why it came out a flat orange blob however good the silhouette got.
-    #
-    # They sit at z 0.22, deliberately ABOVE the tail's ground run, so the tail crosses
-    # in front of their lower half and they peek out over the top. That is what a
-    # loafing cat's paws actually do under a wrapped tail, and it is also the only way
-    # they survive: anything pale at ground level here is simply drawn over.
+    # These are the pose. They sit entirely BELOW the head (head bottom 0.19, legs top
+    # 0.18) because the head is wider in X, so it is nearer the camera and would draw
+    # straight over them otherwise - which is exactly what killed the visible paws in
+    # the loaf version.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("Paw" + sfx, sx * 0.14, -0.70, 0.24, 0.19, 0.26, 0.18, m_under)
-        box("Toe" + sfx, sx * 0.14, -0.80, 0.23, 0.20, 0.10, 0.14, m_acc)
+        box("LegF" + sfx, sx * 0.14, -0.74, 0.09, 0.20, 0.44, 0.18, m_under)
+        box("ToeF" + sfx, sx * 0.14, -0.97, 0.08, 0.21, 0.14, 0.16, m_acc)
 
-    # NO LEGS. A visible leg turns a loaf into a crouch.
+    # A hind leg flopped out behind, so the back half is not a bare block.
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        box("LegB" + sfx, sx * 0.15, 0.62, 0.09, 0.22, 0.38, 0.18, m_under)
+        box("ToeB" + sfx, sx * 0.15, 0.84, 0.08, 0.23, 0.14, 0.16, m_acc)
 
-    # THE TAIL, wrapped right round her and tucked up in front of her chest.
-    #
-    # A wrapped tail is mostly BEHIND the body in profile, so almost all of this curve
-    # is correctly hidden. What has to read is the last third, arcing up through the
-    # open space in front of her chest and below her chin - which is exactly where a
-    # real loafing cat parks the tip.
-    #
-    # Laid along a RESAMPLED CURVE rather than as straight boxes. Three straight blocks
-    # were tried and a wrapped tail has to be genuinely round, or it reads as a stick
-    # lying next to her rather than as part of her.
-    #
-    # It stays clear of the muzzle (z 0.505 and up). Being nearer the camera the tail
-    # draws over anything it shares screen space with, and an earlier version hooked
-    # straight through her nose, which vanished.
-    TAIL_PATH = [
-        # The floor of this path is 0.072, not 0. A cube is placed ON each sample, so
-        # its bottom sits half a thickness lower - at z 0.03 the tail broke through
-        # z=0 and took the sprite's ground line from 24px to 14px.
-        ( 0.60, 0.26), ( 0.52, 0.16), ( 0.38, 0.10), ( 0.18, 0.078),
-        (-0.06, 0.072), (-0.30, 0.075), (-0.52, 0.09), (-0.70, 0.13),
-        (-0.84, 0.21), (-0.92, 0.31), (-0.93, 0.42),
-    ]
-    global TAIL_PARTS
-    TAIL_PARTS = tail_curve(TAIL_PATH, TAIL_X, 0.15, 0.10, m_coat)
+    # TAIL laid out long behind her with a lazy flick at the tip. Behind is empty
+    # background, so it always reads - and a straight-out tail is what a stretched-out
+    # cat has, where a wrapped one belongs to a curl.
+    # Kept inside the canvas on purpose. Stretched out she spans 2.05 world units
+    # against the sprite's 2.3 - the widest state by a long way, and the first version
+    # reached 630px of a 640px frame, one tweak from clipping.
+    tail_curve([(0.76, 0.14), (0.88, 0.10), (0.99, 0.085), (1.08, 0.10), (1.14, 0.16)],
+               -0.30, 0.14, 0.10, m_coat)
 
 
 # ----------------------------------------------------------------------------
-# A sleeping cat breathes and flicks its tail. That is the entire repertoire.
+# A sleeping cat breathes and twitches a tail. That is the entire repertoire.
 BONES = {
-    "root":     ((0, 0.20, 0),               (0, 0.20, 0.16)),
-    "spine":    ((0, 0.26, 0.20),            (0, -0.20, 0.44)),
+    "root":     ((0, 0.30, 0),               (0, 0.30, 0.16)),
+    "spine":    ((0, 0.50, 0.20),            (0, -0.30, 0.24)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
-    "tailBase": ((TAIL_X,  0.60, 0.26),      (TAIL_X, -0.06, 0.03)),
-    "tailTip":  ((TAIL_X, -0.06, 0.03),      (TAIL_X, -0.93, 0.42)),
+    "tailBase": ((-0.30, 0.76, 0.14),        (-0.30, 0.99, 0.085)),
+    "tailTip":  ((-0.30, 0.99, 0.085),       (-0.30, 1.14, 0.16)),
 }
 BONE_PARENT = {"spine": "root", "head": "spine",
                "tailBase": "root", "tailTip": "tailBase"}
-
-_WAIST = 3
+TAIL_PARTS = []
 PART_BONE = {
-    "root":  [f"Body{i}" for i in range(_WAIST)] + ["PawL", "PawR", "ToeL", "ToeR"],
-    "spine": [f"Body{i}" for i in range(_WAIST, len(MOUND))] + ["Chest", "Bib"],
+    "root":  ["Haunch", "LegBL", "LegBR", "ToeBL", "ToeBR"],
+    "spine": ["Body", "Chest", "Belly", "LegFL", "LegFR", "ToeFL", "ToeFR"],
     "head":  FACE_PARTS,
-    # Filled in by build_armature(): the curve decides how many parts there are.
     "tailBase": [],
     "tailTip":  [],
 }
 
 
-TAIL_PARTS = []
-
-
 def build_armature():
-    # Split the resampled curve between the two tail bones, so a flick bends the tip
-    # without swinging the whole wrap.
-    half = len(TAIL_PARTS) // 2
-    PART_BONE["tailBase"] = TAIL_PARTS[:half]
-    PART_BONE["tailTip"] = TAIL_PARTS[half:]
+    tail = [n for n in PARTS if n.startswith("Tail")]
+    tail.sort(key=lambda n: int(n[4:]))
+    half = len(tail) // 2
+    PART_BONE["tailBase"] = tail[:half]
+    PART_BONE["tailTip"] = tail[half:]
 
     arm_data = bpy.data.armatures.new("CatRigSleep")
     arm = bpy.data.objects.new("LoafSleep", arm_data)
