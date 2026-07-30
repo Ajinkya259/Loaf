@@ -36,6 +36,8 @@ struct CatView: View {
                 // a backwards "z". It takes `facing` as a plain number instead.
                 if state == .sleep {
                     ZzzView(scale: s, facing: engine.facing, t: t)
+                } else if state == .stressed {
+                    AlarmView(scale: s, facing: engine.facing, t: t)
                 }
             }
             .frame(width: AppDelegate.baseSize.width * s,

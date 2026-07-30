@@ -18,6 +18,12 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(wanders, forKey: "loaf.wanders") }
     }
 
+    /// Does she react to CPU and memory pressure?
+    @Published var reactToSystem: Bool =
+        UserDefaults.standard.object(forKey: "loaf.reactToSystem") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(reactToSystem, forKey: "loaf.reactToSystem") }
+    }
+
     /// How heavy she is, which is the app's core signal made visible.
     ///
     /// Driven by task load once there is a task source; until then it is set by hand
@@ -46,6 +52,5 @@ final class Settings: ObservableObject {
     static let sizePresets: [(name: String, value: Double)] = [
         ("Small",  0.7),
         ("Medium", 1.0),
-        ("Large",  1.4),
     ]
 }

@@ -28,6 +28,13 @@ final class CatEngine: ObservableObject {
     /// and then she lands two frames after her feet touch down.
     @Published var jumpProgress: Double?
 
+    /// The machine is struggling. Set by `SystemMonitor`, read by the wander loop.
+    ///
+    /// Held separately from `state` because it OUTRANKS the wander loop rather than
+    /// being one of its options: while this is true she stays put and stressed, and
+    /// the loop's strolling and napping are simply not consulted.
+    @Published var overloaded = false
+
     /// True when the wander loop is allowed to drive.
     var autopilot: Bool { pinned == nil }
 
