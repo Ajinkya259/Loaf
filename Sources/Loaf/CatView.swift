@@ -44,8 +44,22 @@ struct CatView: View {
     /// one of *their* sprites — carrying it over would leave a dead branch. This is
     /// also why `side_idle.png` must always exist: it is what every unrendered state
     /// resolves to.
+    /// Which frame to draw. Kept out of the `@ViewBuilder` below, which can't hold
+    /// ordinary control flow.
+    ///
+    /// A jump is scrubbed by PROGRESS, not by the clock. Everything else loops on
+    /// time, but a jump has to land on its last frame exactly when the arc lands, and
+    /// two independent timers would drift apart within a few hops.
+    private func frameName(_ state: LoafState, t: TimeInterval) -> String {
+        if state == .jump, let p = engine.jumpProgress {
+            let n = max(Sprites.frameCount("jump"), 1)
+            return "jump\(min(n - 1, max(0, Int(p * Double(n)))) + 1)"
+        }
+        return Sprites.frameName(state.sprite, t: t, fps: Self.walkFPS)
+    }
+
     @ViewBuilder private func sprite(for state: LoafState, t: TimeInterval) -> some View {
-        let name = Sprites.frameName(state.sprite, t: t, fps: Self.walkFPS)
+        let name = frameName(state, t: t)
         if let img = Sprites.image(name) ?? Sprites.image("side_idle") {
             Image(nsImage: img)
                 .resizable()

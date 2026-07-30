@@ -18,6 +18,7 @@ enum LoafState: String, CaseIterable, Identifiable {
     case sit            // sitting, front
     case sitSide        // sitting, profile — the same angle she walks in
     case sleep          // curled up asleep, profile
+    case jump           // 6-frame arc, profile — plays once, never held
 
     // Planned. See CLAUDE.md §6. No art yet; the menu disables these.
     case chill          // lounging with a prop vignette (coffee, popcorn)
@@ -52,6 +53,7 @@ enum LoafState: String, CaseIterable, Identifiable {
         case .sit:      "Sit (front)"
         case .sitSide:  "Sit (side)"
         case .sleep:    "Sleep"
+        case .jump:     "Jump"
         case .chill:    "Chill"
         case .chonk:    "Chonk"
         case .stressed: "Stressed"
@@ -72,11 +74,17 @@ enum LoafState: String, CaseIterable, Identifiable {
     /// width axis, exactly what a side camera cannot see. The real lesson was
     /// "front-designed geometry doesn't survive profile", not "a sit can't be shown in
     /// profile". See SPRITE_CONTRACT.md §2.
-    var isProfile: Bool { self == .idle || self == .walk || self == .sitSide || self == .sleep }
+    var isProfile: Bool { self == .idle || self == .walk || self == .sitSide || self == .sleep || self == .jump }
 
     /// Locomotion states travel, so the wander loop moves the window under them.
     /// Everything else plays in place.
     var isLocomotion: Bool { self == .walk }
+
+    /// Plays once and ends, rather than looping or being held.
+    ///
+    /// The menu treats these differently: picking one *performs* it and hands control
+    /// straight back, because pinning a jump would freeze her mid-air.
+    var isOneShot: Bool { self == .jump }
 
     /// Can this state actually be drawn right now?
     var available: Bool { Sprites.exists(sprite) }
