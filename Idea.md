@@ -1,4 +1,4 @@
-# Deskitty — Idea Notes
+# Loaf — Idea Notes
 
 _Status: pure brainstorm. Not built. Come back later._
 
@@ -18,10 +18,12 @@ Two layers to this:
 2. **The brain layer** — an LLM (OpenAI) she's connected to, with memory (mem0 or cloud memory) so she remembers you across sessions, reachable through **channels**: Telegram, a web interface, or a Twilio phone number (call or text her from anywhere, whatever the location). Through the brain she can take actions — e.g. "hey cat, play Spotify" → she controls Spotify. More tool integrations as they come to mind.
 
 ## Naming
-Going with **Deskitty** (desk + kitty) as the working name — cute, and says exactly what she is. Other options if it doesn't stick: Purrsistant, Taskat, Meowbit. Just a label for now, easy to rename before anything's built.
+_Original entry:_ going with **Deskitty** (desk + kitty) as the working name — cute, and says exactly what she is. Other options if it doesn't stick: Purrsistant, Taskat, Meowbit.
+
+**Settled 2026-07-30: the name is Loaf.** Deskitty named the product rather than the pet, and it doesn't survive being said out loud (*desk-itty* or *des-kitty*?). "Cat loaf" is the internet term for a cat sitting with its paws tucked — which is exactly the `sit` sprite — *loafing* is the idle state, and a loaf is a shape that gets bigger, which is the task-load mechanic. One word for the silhouette, the personality and the core mechanic. It also stands out against a field where every shipping competitor is named descriptively (Mac Pet, Desktop Pet, ScreenPets, PetBar, Running Cat).
 
 ## Relation to FlyThrough
-[[project-flythrough]] is already a macOS menu-bar app with a cat character — photoreal, walks across screen before meetings, built on SwiftPM + an AppKit overlay. Deskitty is conceptually different (a persistent pixel-art pet, not a one-off walk-through), but same domain — desktop cat companion on macOS — and could plausibly reuse overlay/animation plumbing when it's time to build. Worth a look at that code before starting from scratch.
+[[project-flythrough]] is already a macOS menu-bar app with a cat character — photoreal, walks across screen before meetings, built on SwiftPM + an AppKit overlay. Loaf is conceptually different (a persistent pixel-art pet, not a one-off walk-through), but same domain — desktop cat companion on macOS — and could plausibly reuse overlay/animation plumbing when it's time to build. Worth a look at that code before starting from scratch.
 
 ## Open questions (decide when we start building, not now)
 - Platform: native macOS (reuse FlyThrough's SwiftPM/AppKit overlay approach) vs cross-platform (Electron/Tauri) — matters more once channels/Twilio need a backend anyway.

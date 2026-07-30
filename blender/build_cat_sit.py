@@ -1,4 +1,4 @@
-"""Build Deskitty's SIT pose - front facing.
+"""Build Loaf's SIT pose - front facing.
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cat_sit.py
 
@@ -142,7 +142,7 @@ PART_BONE = {
 
 def build_armature():
     arm_data = bpy.data.armatures.new("CatRigSit")
-    arm = bpy.data.objects.new("DeskittySit", arm_data)
+    arm = bpy.data.objects.new("LoafSit", arm_data)
     bpy.context.scene.collection.objects.link(arm)
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode="EDIT")

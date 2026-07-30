@@ -1,6 +1,6 @@
-# Deskitty — Google Veo prompt pack
+# Loaf — Google Veo prompt pack
 
-Prompts for generating Deskitty's states as video, matched to the voxel character we
+Prompts for generating Loaf's states as video, matched to the voxel character we
 built in Blender (`blender/build_cat.py`, renders at `blender/cat_side.png` and
 `blender/cat_idle.png`).
 
@@ -206,7 +206,7 @@ ffmpeg -i clip.mp4 \
   -vf "despill=type=green:mix=0.5,chromakey=0x00B140:0.14:0.03,fps=12,scale=256:-1:flags=neighbor" \
   -pix_fmt rgba frames/f_%03d.png
 
-# 3. Quantize to the real Deskitty palette (make palette.png from your 4 hex swatches)
+# 3. Quantize to the real Loaf palette (make palette.png from your 4 hex swatches)
 ffmpeg -i frames/f_%03d.png -i palette.png \
   -lavfi "paletteuse=dither=none" -pix_fmt rgba out/f_%03d.png
 

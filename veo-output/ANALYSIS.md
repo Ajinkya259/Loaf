@@ -1,6 +1,6 @@
 # Veo run 01 — analysis
 
-Source: Gemini share link, downloaded 2026-07-25. Video at `deskitty_veo.mp4`.
+Source: Gemini share link, downloaded 2026-07-25. Video at `loaf_veo.mp4`.
 `grid.png` = 12 frames across the full clip. `gait_row.png` = 6 consecutive frames
 (half a second) to inspect the walk.
 
