@@ -28,6 +28,14 @@ final class CatEngine: ObservableObject {
     /// and then she lands two frames after her feet touch down.
     @Published var jumpProgress: Double?
 
+    /// She is being dragged. Suspends the wander loop entirely.
+    ///
+    /// Without this the drag and the loop fight: AppKit moves the window while you
+    /// pull, and 50 times a second `place()` puts it back on the dock line. That is
+    /// the flicker - two things writing the same window origin, one of them pinning
+    /// the y you are trying to change.
+    @Published var held = false
+
     /// The machine is struggling. Set by `SystemMonitor`, read by the wander loop.
     ///
     /// Held separately from `state` because it OUTRANKS the wander loop rather than

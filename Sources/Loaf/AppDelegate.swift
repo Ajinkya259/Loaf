@@ -55,7 +55,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var cornerTargetX: CGFloat = 0
     var restStartedAt = Date()
 
-    enum Activity { case strolling, toCorner, resting, jumping }
+    enum Activity { case strolling, toCorner, resting, jumping, falling }
+
+    // MARK: Being picked up
+
+    var dragOrigin: NSPoint?
+    var fallSpeed: CGFloat = 0
+
+    /// One frame of a drag.
+    ///
+    /// PICKING HER UP WAKES HER. A cat that stays asleep while you carry it across the
+    /// screen is wrong, and the same goes for staying alarmed - being handled is a new
+    /// thing happening to her, so she turns front-on and looks at you.
+    func dragTo(_ translation: CGSize) {
+        guard let window = characterWindow else { return }
+        if dragOrigin == nil {
+            dragOrigin = window.frame.origin
+            engine.held = true
+            engine.jumpProgress = nil
+            if engine.autopilot { engine.setAuto(.look) }
+        }
+        guard let o = dragOrigin else { return }
+        // SwiftUI's height grows downward, AppKit's y grows upward.
+        let p = NSPoint(x: o.x + translation.width, y: o.y - translation.height)
+        window.setFrameOrigin(p)
+        loafX = p.x
+    }
+
+    /// Let go. She falls back to the dock line rather than teleporting to it.
+    func dropped() {
+        dragOrigin = nil
+        engine.held = false
+        fallSpeed = 0
+        activity = .falling
+        if wanderTimer == nil { startWandering() }
+    }
 
     // MARK: The jump
 
@@ -180,6 +214,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         weightRoot.submenu = weightMenu
         menu.addItem(weightRoot)
 
+        let showMenu = NSMenu()
+        for (name, id) in Settings.layers {
+            let item = NSMenuItem(title: name, action: #selector(pickLayer(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            item.state = (settings.layer == id) ? .on : .off
+            showMenu.addItem(item)
+        }
+        showMenu.addItem(.separator())
+        let spaces = NSMenuItem(title: "On all Spaces",
+                                action: #selector(toggleAllSpaces(_:)), keyEquivalent: "")
+        spaces.target = self
+        spaces.state = settings.allSpaces ? .on : .off
+        showMenu.addItem(spaces)
+        let showRoot = NSMenuItem(title: "Show", action: nil, keyEquivalent: "")
+        showRoot.submenu = showMenu
+        menu.addItem(showRoot)
+
         let react = NSMenuItem(title: "React to system load",
                                action: #selector(toggleReact(_:)), keyEquivalent: "")
         react.target = self
@@ -224,6 +276,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         engine.pin(s)
     }
 
+    @objc private func pickLayer(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        settings.layer = id
+        applyPlacement(to: characterWindow)
+    }
+
+    @objc private func toggleAllSpaces(_ sender: NSMenuItem) {
+        settings.allSpaces.toggle()
+        sender.state = settings.allSpaces ? .on : .off
+        applyPlacement(to: characterWindow)
+    }
+
     @objc private func toggleReact(_ sender: NSMenuItem) {
         settings.reactToSystem.toggle()
         sender.state = settings.reactToSystem ? .on : .off
@@ -251,18 +315,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = false
-        window.level = .floating
-        // Follow the user across spaces and stay put in Mission Control, so she reads
-        // as part of the desktop rather than a document window that got lost.
-        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
-        window.isMovableByWindowBackground = true      // drag her somewhere else
+        applyPlacement(to: window)
+        // NOT isMovableByWindowBackground. See CatView.onDrag: AppKit's own dragging
+        // fights the wander loop over the same window origin.
+        window.isMovableByWindowBackground = false
 
         window.contentView = NSHostingView(
-            rootView: CatView(settings: settings, engine: engine)
+            rootView: CatView(settings: settings, engine: engine,
+                              onDrag: { [weak self] in self?.dragTo($0) },
+                              onDrop: { [weak self] in self?.dropped() })
         )
         characterWindow = window
 
         positionAtDock()
+        window.orderFrontRegardless()
+    }
+
+    /// Window level and Space behaviour, from `Settings`.
+    ///
+    /// `desktopIconWindow` is the level Finder puts your desktop icons at, so she ends
+    /// up genuinely ON the desktop - behind every app window rather than floating over
+    /// them. That is a different thing from being on all Spaces, which is why they are
+    /// two controls.
+    func applyPlacement(to window: NSWindow) {
+        window.level = settings.layer == "desktop"
+            ? NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
+            : .floating
+        var behaviour: NSWindow.CollectionBehavior = [.stationary, .fullScreenAuxiliary]
+        if settings.allSpaces { behaviour.insert(.canJoinAllSpaces) }
+        window.collectionBehavior = behaviour
+        // Re-assert the level: dropping to the desktop can leave her ordered above the
+        // windows she is now supposed to sit behind until something reorders her.
         window.orderFrontRegardless()
     }
 

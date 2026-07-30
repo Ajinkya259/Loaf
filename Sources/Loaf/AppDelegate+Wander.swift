@@ -26,6 +26,8 @@ extension AppDelegate {
     }
 
     func stepWander() {
+        // Being carried: the drag owns the window origin, and nothing here may touch it.
+        guard !engine.held else { return }
         // Pinned from the menu: she's being inspected, so hold still.
         guard engine.autopilot, let screen = NSScreen.main, characterWindow.isVisible else { return }
 
@@ -66,6 +68,9 @@ extension AppDelegate {
                 engine.setAuto(.sitSide)
             }
 
+        case .falling:
+            stepFall(to: y, minX: minX, maxX: maxX)
+
         case .jumping:
             stepJump(y: y, minX: minX, maxX: maxX)
 
@@ -83,6 +88,25 @@ extension AppDelegate {
                 beginStroll(seconds: Double.random(in: 20...40))
             }
         }
+    }
+
+    /// One frame of falling back to the dock after being dropped.
+    ///
+    /// Accelerating, not a snap. She can be let go anywhere on screen, and teleporting
+    /// her to the dock line reads as a glitch where falling reads as gravity - and it
+    /// costs four lines.
+    func stepFall(to y: CGFloat, minX: CGFloat, maxX: CGFloat) {
+        let f = characterWindow.frame.origin
+        loafX = min(max(loafX, minX), maxX)
+        if f.y <= y + 1 {
+            place(loafX, y)
+            beginStroll(seconds: Double.random(in: 12...30))
+            return
+        }
+        fallSpeed = min(fallSpeed + 1.4 * CGFloat(settings.scale), 26)
+        engine.setAuto(.idle)
+        characterWindow.setFrameOrigin(
+            NSPoint(x: loafX.rounded(), y: max(y, f.y - fallSpeed)))
     }
 
     // MARK: The jump

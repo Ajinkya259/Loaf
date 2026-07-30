@@ -18,6 +18,34 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(wanders, forKey: "loaf.wanders") }
     }
 
+    /// Where she sits in the window stack.
+    ///
+    /// Two genuinely different ideas of what a desktop pet is, so it is a real choice
+    /// rather than a preference:
+    ///
+    /// - `float` — above every window. She is a companion you always see.
+    /// - `desktop` — down among the desktop icons, BEHIND every app window. She is
+    ///   part of the desktop, and covering it covers her. Quieter, and the right pick
+    ///   if she is ever distracting while you work.
+    @Published var layer: String = UserDefaults.standard.string(forKey: "loaf.layer") ?? "float" {
+        didSet { UserDefaults.standard.set(layer, forKey: "loaf.layer") }
+    }
+
+    /// Follow the user across Spaces, or stay on the one she started in.
+    ///
+    /// Separate from `layer` on purpose - they answer different questions ("what
+    /// covers her" vs "does she follow me"), and folding them into one list of modes
+    /// would hide half the combinations.
+    @Published var allSpaces: Bool =
+        UserDefaults.standard.object(forKey: "loaf.allSpaces") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(allSpaces, forKey: "loaf.allSpaces") }
+    }
+
+    static let layers: [(name: String, id: String)] = [
+        ("Above all windows",   "float"),
+        ("On the desktop only", "desktop"),
+    ]
+
     /// Does she react to CPU and memory pressure?
     @Published var reactToSystem: Bool =
         UserDefaults.standard.object(forKey: "loaf.reactToSystem") as? Bool ?? true {

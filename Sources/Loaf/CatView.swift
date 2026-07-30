@@ -10,6 +10,15 @@ struct CatView: View {
     @ObservedObject var settings: Settings
     @ObservedObject var engine: CatEngine
 
+    /// Drag handling is the app's, not AppKit's.
+    ///
+    /// `isMovableByWindowBackground` was doing this before and could not work: AppKit
+    /// moved the window while the wander loop wrote the same origin 50 times a second,
+    /// pinning the y you were trying to change. Owning the gesture means the loop can
+    /// be suspended for exactly as long as the drag lasts.
+    var onDrag: ((CGSize) -> Void)?
+    var onDrop: (() -> Void)?
+
     /// 8 frames at 6.5fps is a 1.23s walk cycle. Inherited from lil-cleo, which tuned
     /// it against a real mocap walk, so it's a better starting point than a guess.
     /// Per-state rates live on `LoafState.fps`; this one drives the procedural bob.
@@ -50,6 +59,11 @@ struct CatView: View {
                height: AppDelegate.baseSize.height * s,
                alignment: .bottom)
         .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                .onChanged { onDrag?($0.translation) }
+                .onEnded { _ in onDrop?() }
+        )
     }
 
     /// Which frame to draw. Kept out of the `@ViewBuilder` below, which can't hold
