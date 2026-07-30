@@ -37,13 +37,14 @@ BLEND = os.path.join(HERE, "cat_sit.blend")
 RUMP_W   = 0.76     # each tier must be clearly narrower than the one below it, or the
 TORSO_W  = 0.60     # stack reads as a box tower instead of a cat
 HEAD_S   = 0.50
+HEAD_W   = 0.60     # wider than tall, for the same reason as the standing build
 RUMP_Z   = 0.21     # rump centre; sits flat on the ground
 TORSO_Z  = 0.65
 HEAD_Z   = 1.14
 HEAD_Y   = -0.06
 FACE_Y   = HEAD_Y - HEAD_S / 2
 MUZZLE_Y = FACE_Y - 0.06
-CHEEK_X  = HEAD_S / 2
+CHEEK_X  = HEAD_W / 2
 
 
 def wipe():
@@ -69,48 +70,70 @@ def build_model():
     # Rump: the folded back legs, read as one wide block resting on the ground.
     box("Rump",  0, 0.14, RUMP_Z, RUMP_W, 0.54, 0.42, m_fur)
     box("Torso", 0, 0.04, TORSO_Z, TORSO_W, 0.44, 0.58, m_fur)
-    # Shaded chest panel - on a white cat this is what separates torso from front legs
-    # instead of the two washing into one white mass.
-    box("Bib", 0, -0.19, TORSO_Z - 0.03, 0.34, 0.14, 0.46, m_shade)
+    # NARROW chest bib that stops well clear of the legs.
+    #
+    # This block was 0.34 wide and 0.46 tall, and directly below it sat two pale front
+    # legs almost touching at the centre line. Together they made one unbroken cream
+    # panel from chin to floor - the NAPPY, which CLAUDE.md already lists as a known
+    # failure class from the white build. It came straight back the moment the sit was
+    # recoloured. A cat has a white BIB, a patch with coat visible on both sides of it,
+    # never a white front panel.
+    box("Bib", 0, -0.19, TORSO_Z + 0.06, 0.20, 0.14, 0.30, m_shade)
 
-    box("Head", 0, HEAD_Y, HEAD_Z, HEAD_S, HEAD_S, HEAD_S, m_fur)
-    # Ears wider than tall and set close to the centre line. The first pass used tall
-    # narrow ears spaced wide apart and she read unmistakably as a rabbit - ear shape
-    # alone decides the species here, more than any other block.
-    ear_z = HEAD_Z + HEAD_S / 2 + 0.065
-    box("EarL", -0.13, HEAD_Y - 0.02, ear_z, 0.20, 0.16, 0.13, m_fur)
-    box("EarR",  0.13, HEAD_Y - 0.02, ear_z, 0.20, 0.16, 0.13, m_fur)
-    box("EarTipL", -0.13, HEAD_Y - 0.02, ear_z + 0.045, 0.21, 0.17, 0.05, m_ink)
-    box("EarTipR",  0.13, HEAD_Y - 0.02, ear_z + 0.045, 0.21, 0.17, 0.05, m_ink)
-    box("InEarL", -0.13, HEAD_Y - 0.105, ear_z - 0.01, 0.12, 0.05, 0.08, m_ear)
-    box("InEarR",  0.13, HEAD_Y - 0.105, ear_z - 0.01, 0.12, 0.05, 0.08, m_ear)
+    box("Head", 0, HEAD_Y, HEAD_Z, HEAD_W, HEAD_S, HEAD_S, m_fur)
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        box("Cheek" + sfx, sx * (HEAD_W / 2 + 0.022), HEAD_Y - 0.015, HEAD_Z - 0.085,
+            0.05, 0.32, 0.20, m_fur)
 
-    box("Muzzle", 0, MUZZLE_Y, HEAD_Z - 0.11, 0.26, 0.10, 0.17, m_eye)
-    box("Nose",   0, MUZZLE_Y - 0.06, HEAD_Z - 0.05, 0.10, 0.06, 0.06, m_nose)
-    for sx in (-1, 1):
-        box(f"Mouth{sx}",  sx * 0.05, MUZZLE_Y - 0.05, HEAD_Z - 0.13, 0.06, 0.05, 0.035, m_nose)
-        box(f"MouthD{sx}", sx * 0.08, MUZZLE_Y - 0.05, HEAD_Z - 0.155, 0.045, 0.05, 0.035, m_nose)
-    box("EyeL", -0.13, FACE_Y - 0.02, HEAD_Z + 0.05, 0.15, 0.05, 0.10, m_eye)
-    box("EyeR",  0.13, FACE_Y - 0.02, HEAD_Z + 0.05, 0.15, 0.05, 0.10, m_eye)
-    box("PupL", -0.13, FACE_Y - 0.045, HEAD_Z + 0.05, 0.04, 0.05, 0.10, m_nose)
-    box("PupR",  0.13, FACE_Y - 0.045, HEAD_Z + 0.05, 0.04, 0.05, 0.10, m_nose)
-    box("EyeSideL", -CHEEK_X - 0.02, HEAD_Y - 0.09, HEAD_Z + 0.05, 0.05, 0.11, 0.11, m_eye)
-    box("EyeSideR",  CHEEK_X + 0.02, HEAD_Y - 0.09, HEAD_Z + 0.05, 0.05, 0.11, 0.11, m_eye)
+    # Same three-tier tapered ear as the standing build, scaled to this smaller head.
+    # No dark tip: a cap terminates the taper and each ear reads as a post instead of
+    # a triangle. Small inner, or it becomes the brightest thing on her head.
+    ear_z = HEAD_Z + HEAD_S / 2
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        ex = sx * 0.20
+        box("Ear" + sfx,    ex, HEAD_Y - 0.04, ear_z + 0.027, 0.18, 0.12, 0.055, m_fur)
+        box("EarMid" + sfx, ex, HEAD_Y - 0.04, ear_z + 0.081, 0.13, 0.12, 0.055, m_fur)
+        box("EarTip" + sfx, ex, HEAD_Y - 0.04, ear_z + 0.125, 0.08, 0.12, 0.035, m_fur)
+        box("InEar" + sfx,  ex, HEAD_Y - 0.10, ear_z + 0.030, 0.08, 0.04, 0.045, m_ear)
+        box("InEarT" + sfx, ex, HEAD_Y - 0.10, ear_z + 0.081, 0.05, 0.04, 0.045, m_ear)
 
-    # Front legs: straight vertical posts, set close together and forward of the rump.
-    for name, x in (("LegFL", -0.15), ("LegFR", 0.15)):
-        box(name, x, -0.30, 0.24, 0.22, 0.22, 0.48, m_shade)
-        box("Toe" + name[3:], x, -0.33, 0.10, 0.23, 0.28, 0.20, m_toe)   # tall boot
+    box("Muzzle", 0, MUZZLE_Y, HEAD_Z - 0.12, 0.23, 0.10, 0.11, m_eye)
+    box("Nose",   0, MUZZLE_Y - 0.06, HEAD_Z - 0.09, 0.08, 0.06, 0.055, m_nose)
+    # No mouth - every version of one read as a frown. See the standing build.
+
+    # Big round eyes with a vertical slit, not wide flat slabs. A wide flat eye reads
+    # as a narrowed one whatever the pupil does, and that was most of why she looked
+    # permanently annoyed.
+    box("EyeL", -0.125, FACE_Y - 0.02, HEAD_Z + 0.04, 0.15, 0.05, 0.145, m_eye)
+    box("EyeR",  0.125, FACE_Y - 0.02, HEAD_Z + 0.04, 0.15, 0.05, 0.145, m_eye)
+    box("PupL", -0.125, FACE_Y - 0.045, HEAD_Z + 0.04, 0.042, 0.05, 0.115, m_nose)
+    box("PupR",  0.125, FACE_Y - 0.045, HEAD_Z + 0.04, 0.042, 0.05, 0.115, m_nose)
+    box("EyeSideL", -CHEEK_X - 0.04, HEAD_Y - 0.09, HEAD_Z + 0.04, 0.05, 0.11, 0.11, m_eye)
+    box("EyeSideR",  CHEEK_X + 0.04, HEAD_Y - 0.09, HEAD_Z + 0.04, 0.05, 0.11, 0.11, m_eye)
+
+    # Front legs, set WIDE APART so the coat shows between them. They stay pale, to
+    # match the standing build - what caused the nappy was the two of them meeting at
+    # the centre line under a wide bib, not the colour itself.
+    for name, x in (("LegFL", -0.20), ("LegFR", 0.20)):
+        box(name, x, -0.30, 0.24, 0.19, 0.22, 0.48, m_shade)
+        box("Toe" + name[3:], x, -0.33, 0.09, 0.20, 0.28, 0.18, m_toe)
     # Back paws peeking out beside the rump - without them the base reads as a plinth.
-    for name, x in (("PawBL", -0.34), ("PawBR", 0.34)):
-        box(name, x, -0.12, 0.07, 0.22, 0.34, 0.14, m_toe)
+    # Kept clear of the front boots, or the whole base becomes one black bar.
+    for name, x in (("PawBL", -0.36), ("PawBR", 0.36)):
+        box(name, x, -0.10, 0.07, 0.18, 0.30, 0.14, m_toe)
 
     # Tail curled around the front, the way a sitting cat parks it over its own paws.
     # Runs back along the right flank, sweeps across the front, then hooks up at the
     # tip - the upturn is what stops the front sweep reading as a doormat.
-    box("Tail1", 0.45, 0.15, 0.10, 0.14, 0.50, 0.14, m_ink)
-    box("Tail2", 0.22, -0.40, 0.10, 0.50, 0.14, 0.14, m_ink)
-    box("Tail3", -0.06, -0.40, 0.22, 0.14, 0.14, 0.22, m_ink)
+    #
+    # COAT-coloured, not accent. It was accent here and coat in the standing build, so
+    # her tail changed colour depending on whether she was sitting down - and being
+    # dark it also merged with the boots and back paws into a single black bar along
+    # the floor that read as a plinth. Left over from the white-cat palette, where the
+    # tail genuinely was black.
+    box("Tail1", 0.45, 0.15, 0.10, 0.14, 0.50, 0.14, m_fur)
+    box("Tail2", 0.22, -0.40, 0.10, 0.50, 0.14, 0.14, m_fur)
+    box("Tail3", -0.06, -0.40, 0.22, 0.14, 0.14, 0.22, m_fur)
 
 
 # ----------------------------------------------------------------------------
@@ -131,8 +154,10 @@ BONE_PARENT = {
 PART_BONE = {
     "root": ["Rump", "PawBL", "PawBR"],
     "spine": ["Torso", "Bib"],
-    "head": ["Head", "EarL", "EarR", "EarTipL", "EarTipR", "InEarL", "InEarR",
-             "Muzzle", "Nose", "Mouth-1", "Mouth1", "MouthD-1", "MouthD1",
+    "head": ["Head", "CheekL", "CheekR",
+             "EarL", "EarR", "EarMidL", "EarMidR", "EarTipL", "EarTipR",
+             "InEarL", "InEarR", "InEarTL", "InEarTR",
+             "Muzzle", "Nose",
              "EyeL", "EyeR", "PupL", "PupR", "EyeSideL", "EyeSideR"],
     "tailBase": ["Tail1"],
     "tailTip": ["Tail2", "Tail3"],
@@ -184,7 +209,8 @@ def show(names, visible):
         PARTS[n].hide_render = not visible
 
 
-FRONT_DECALS = ("EyeL", "EyeR", "PupL", "PupR", "InEarL", "InEarR")
+FRONT_DECALS = ("EyeL", "EyeR", "PupL", "PupR",
+                "InEarL", "InEarR", "InEarTL", "InEarTR")
 CHEEK_DECALS = ("EyeSideL", "EyeSideR")
 
 
