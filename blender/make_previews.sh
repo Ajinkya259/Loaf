@@ -9,7 +9,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p previews
 
-for f in sprites/*.png; do
+# Blender renders straight into the Swift package - there is no copy step.
+SPRITES=../Sources/Loaf/Resources/sprites
+
+for f in "$SPRITES"/*.png; do
     [ -f "$f" ] || continue
     magick "$f" -background '#33333B' -alpha remove -alpha off "previews/$(basename "$f")"
     echo "previews/$(basename "$f")"
