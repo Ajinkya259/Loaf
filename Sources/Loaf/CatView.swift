@@ -21,17 +21,28 @@ struct CatView: View {
             let t = tl.date.timeIntervalSinceReferenceDate
             let state = engine.state
 
-            sprite(for: state, t: t)
-                .frame(width: AppDelegate.baseSize.width * s,
-                       height: AppDelegate.baseSize.height * s,
-                       alignment: .bottom)
-                // anchor .bottom is (0.5, 1.0): mirrored about the HORIZONTAL centre,
-                // pivoting on her feet. This is exactly why the profile sprites had to
-                // be recentred in Blender — see SPRITE_CONTRACT.md. Mirroring an
-                // off-centre silhouette about the window centre teleports her.
-                .scaleEffect(x: engine.facing, anchor: .bottom)
-                .offset(y: bob(state, t: t) * s)
-                .animation(.easeInOut(duration: 0.22), value: state)
+            ZStack(alignment: .bottom) {
+                sprite(for: state, t: t)
+                    .frame(width: AppDelegate.baseSize.width * s,
+                           height: AppDelegate.baseSize.height * s,
+                           alignment: .bottom)
+                    // anchor .bottom is (0.5, 1.0): mirrored about the HORIZONTAL
+                    // centre, pivoting on her feet. This is exactly why the profile
+                    // sprites had to be recentred in Blender — see SPRITE_CONTRACT.md.
+                    // Mirroring an off-centre silhouette teleports her.
+                    .scaleEffect(x: engine.facing, anchor: .bottom)
+
+                // OUTSIDE the mirrored layer on purpose: flipping this too would draw
+                // a backwards "z". It takes `facing` as a plain number instead.
+                if state == .sleep {
+                    ZzzView(scale: s, facing: engine.facing, t: t)
+                }
+            }
+            .frame(width: AppDelegate.baseSize.width * s,
+                   height: AppDelegate.baseSize.height * s,
+                   alignment: .bottom)
+            .offset(y: bob(state, t: t) * s)
+            .animation(.easeInOut(duration: 0.22), value: state)
         }
         .frame(width: AppDelegate.baseSize.width * s,
                height: AppDelegate.baseSize.height * s,
