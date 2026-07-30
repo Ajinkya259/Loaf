@@ -40,16 +40,22 @@ struct ZzzView: View {
     @ViewBuilder private func glyph(_ p: Double) -> some View {
         // Grows as it rises, which reads as drifting toward you rather than simply
         // sliding up the screen.
-        let size = 11 * scale * (0.62 + 0.75 * p)
-        // In fast, out slow. A symmetric fade makes them pop in at full strength at
-        // her head, which looks like they are being emitted rather than exhaled.
-        let alpha = min(1, p / 0.18) * (1 - p) * (1 - p)
+        let size = 13 * scale * (0.70 + 0.70 * p)
+        // Fade in fast, hold, fade out at the top. The first version squared the
+        // falloff, which left them under 0.3 opacity for most of the climb - visible
+        // in a snapshot, invisible on a desktop.
+        let alpha = min(1, p / 0.12) * min(1, (1 - p) / 0.30)
         Text("z")
-            .font(.system(size: size, weight: .heavy, design: .rounded))
+            .font(.system(size: size, weight: .black, design: .rounded))
             .foregroundStyle(.white)
-            // A dark halo, because a desktop can be any colour and plain white "z"s
-            // disappear on a light wallpaper.
-            .shadow(color: .black.opacity(0.55), radius: 1.2 * scale, x: 0, y: 0)
+            // WHITE FILL, HARD BLACK OUTLINE. A desktop can be any colour, and a
+            // single soft halo is not enough: white "z"s vanish on a light wallpaper
+            // and a dark glyph vanishes on a dark one. Four zero-radius shadows make a
+            // real outline, so the pair reads on anything.
+            .shadow(color: .black.opacity(0.9), radius: 0, x:  1.1 * scale, y: 0)
+            .shadow(color: .black.opacity(0.9), radius: 0, x: -1.1 * scale, y: 0)
+            .shadow(color: .black.opacity(0.9), radius: 0, x: 0, y:  1.1 * scale)
+            .shadow(color: .black.opacity(0.9), radius: 0, x: 0, y: -1.1 * scale)
             .opacity(alpha)
             .offset(
                 // Anchored just off her head, mirrored with her so they stay by her
