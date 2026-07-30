@@ -640,6 +640,52 @@ def render_walk(arm, n=WALK_FRAMES):
 
 
 # ----------------------------------------------------------------------------
+# THE JUMP, as six hand-set poses rather than a sine cycle.
+#
+# A walk is periodic, so procedural curves suit it. A jump is not - it is a sequence of
+# distinct beats, and the beats are what sell it: gather, push, tuck, stretch, reach,
+# absorb. Sampling a curve would flatten exactly the asymmetry that makes it read.
+#
+# SHE DOES NOT RISE IN THESE SPRITES. The arc is the app's job, for the same reason the
+# walk doesn't travel: the sprite anchors bottom-centre, so lifting her inside the frame
+# would fight that anchor, and jump HEIGHT and LENGTH need to be real tunable numbers on
+# the app side rather than something baked into art. What the sprites carry is the pose;
+# what the app carries is the parabola. The only vertical movement here is the crouch
+# and the landing squash, which are pose, not trajectory.
+#
+# Degrees: (dz, spine, front legs, back legs, tail, head)
+JUMP_POSES = [
+    (-0.10,   7, -20,  22, -14,   7),   # 1 gather   - coiled, weight back
+    (-0.02, -11, -42, -48, -22,  -5),   # 2 push     - body extends, back legs drive
+    ( 0.00,  -5,  36,  42,  -8,  -7),   # 3 tuck     - airborne, legs gathered up
+    ( 0.00,   0, -20,  28,   8,  -2),   # 4 stretch  - apex, reaching out long
+    ( 0.00,   6, -46,  10,  18,   5),   # 5 reach    - front legs down for the ground
+    (-0.08,  10, -12, -18,  12,   9),   # 6 absorb   - landed, compressing
+]
+
+
+def render_jump(arm):
+    """Six jump poses, sampled into `jump1..6.png`."""
+    pb = arm.pose.bones
+    for i, (dz, spine, legf, legb, tail, head) in enumerate(JUMP_POSES):
+        # Applied on the armature object, so it composes with the profile recentring
+        # face() puts on location[0] instead of fighting it.
+        arm.location[2] = dz
+        pb["spine"].rotation_euler[0] = math.radians(spine)
+        for b in ("legFL", "legFR"):
+            pb[b].rotation_euler[0] = math.radians(legf)
+        for b in ("legBL", "legBR"):
+            pb[b].rotation_euler[0] = math.radians(legb)
+        pb["tailBase"].rotation_euler[0] = math.radians(tail)
+        pb["tailMid"].rotation_euler[0]  = math.radians(tail * 1.3)
+        pb["tailTip"].rotation_euler[0]  = math.radians(tail * 1.6)
+        pb["head"].rotation_euler[0]     = math.radians(head)
+        render_to(os.path.join(SPRITES, f"jump{i + 1}.png"))
+    arm.location[2] = 0.0
+    rest_pose(arm)
+
+
+# ----------------------------------------------------------------------------
 def main():
     wipe()
     build_model()
@@ -668,6 +714,7 @@ def main():
     face(arm, side=True)
     show(CHEEK_DECALS, True); show(FRONT_DECALS, False)
     render_walk(arm)
+    render_jump(arm)
 
 
 if __name__ == "__main__":
