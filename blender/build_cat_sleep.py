@@ -2,16 +2,19 @@
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cat_sleep.py
 
-The classic cat sleeping position, and the one that reads best at sprite size: head
-down flat, body curled into a low rounded mound, tail wrapped around the front with
-the tip resting past her nose.
+The LOAF position - paws folded underneath, body a low mound, head up, eyes shut. The
+pose the app is named after, and the one a cat actually settles into on a desk.
 
-WHY CURLED AND NOT ONE OF THE OTHERS. A cat has a dozen recognisable sleeping poses -
-belly up, sideways, paws over the face - but almost all of them are read from limb
-detail, which is exactly what disappears when a 640x512 render is drawn at 160x128.
-Curled up is read from the OUTLINE alone: one low wide dome. That also makes it
-maximally distinct from every other state Loaf has, since idle, walk and both sits are
-all upright with the head held high. At a glance, low and round means asleep.
+WHY NOT CURLED. Curled up is the classic sleeping position and it was built first, and
+at 160x128 it was unreadable - a lumpy orange rock with a dark dash on it. The reason
+is structural, not a tuning problem: curling TUCKS THE HEAD INTO THE BODY, and the head
+is the single feature that identifies her as a cat. Ears, muzzle, eye, the step from
+head to shoulder - all of it disappears into one mass, and flat voxel colour has no
+fur, no shading and no outline to recover it with. A photograph of a curled cat reads
+because of texture this style does not have.
+
+The loaf keeps the head clear of the body, so ears and a shut eye still carry the
+species, while the low wide mound and the absence of any leg still carry the sleep.
 
 Two things carry the read, and neither is the body:
 
@@ -44,36 +47,29 @@ BLEND = os.path.join(HERE, "cat_sleep.blend")
 
 # Front = -Y, up = +Z, ground = z 0.
 #
-# THE DOME. Six horizontal slabs, floor upward: (z0, z1, y front, y back).
+# THE MOUND. Six horizontal slabs, floor upward: (z0, z1, y front, y back).
 #
-# Both edges pull inward as it rises, which is what makes it a mound rather than a
-# box: the front runs -0.24, -0.30, -0.30, -0.24, -0.12, 0.04 and the back 0.60, 0.66,
-# 0.64, 0.58, 0.48, 0.34. Widest just off the floor, exactly like a sleeping cat
-# spreading slightly under its own weight.
-# HER BACK ARCHES ABOVE HER HEAD. At six slabs the dome topped out at 0.60 against a
-# head reaching 0.67, so the head stood proud of the body and the pair read as two
-# lumps. A curled cat tucks its head LOW and arches its back over it, so the dome has
-# to be the tallest thing in the pose.
-DOME = [
-    (0.000, 0.100, -0.24, 0.60),
-    (0.100, 0.200, -0.30, 0.66),
-    (0.200, 0.300, -0.30, 0.64),
-    (0.300, 0.400, -0.26, 0.60),
-    (0.400, 0.500, -0.18, 0.54),
-    (0.500, 0.600, -0.06, 0.46),
-    (0.600, 0.700,  0.08, 0.36),
-    (0.700, 0.780,  0.20, 0.26),
+# Low and clearly WIDER THAN TALL - 1.45 across against 1.26 high including her ears,
+# where the profile sit is 1.54 high. That difference is what says "resting" before
+# any detail is read. Both edges pull in as it rises so it is a mound, not a box.
+MOUND = [
+    (0.000, 0.090, -0.36, 0.58),
+    (0.090, 0.180, -0.40, 0.62),
+    (0.180, 0.270, -0.40, 0.60),
+    (0.270, 0.360, -0.36, 0.54),
+    (0.360, 0.450, -0.26, 0.44),
+    (0.450, 0.520, -0.10, 0.30),
 ]
 SLAB_OVERLAP = 0.012   # added UPWARD, never centred, or the bottom slab breaks z=0
 
-# The head rests ON THE FLOOR at the front, tucked against the body. Same size as
-# every other pose - she is the same cat asleep as awake.
-HEAD_Y, HEAD_Z = -0.44, 0.34     # z 0.01..0.67
+# Head UP and forward, resting on the front of the mound. Same size as every other
+# pose - she is the same cat asleep as awake.
+HEAD_Y, HEAD_Z = -0.50, 0.74     # z 0.41..1.07
 
 TAIL_X = -0.45   # outside even the head (+-0.39) in X, and on the camera side
 
 # Measured after the first render.
-SLEEP_DX = -52 * SPRITE_UPP
+SLEEP_DX = -50 * SPRITE_UPP
 
 
 def wipe():
@@ -94,53 +90,60 @@ def build_model():
     m_w     = material("FaceW", FACE_W, rough=1.0)
     m_k     = material("FaceK", FACE_K, rough=1.0)
 
-    for i, (z0, z1, y0, y1) in enumerate(DOME):
+    for i, (z0, z1, y0, y1) in enumerate(MOUND):
         box(f"Body{i}", 0, (y0 + y1) / 2, (z0 + z1) / 2 + SLAB_OVERLAP / 2,
             BODY_W, y1 - y0, z1 - z0 + SLAB_OVERLAP, m_coat)
 
     # Eyes shut. This is the state, not a detail - see the module docstring.
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k, eyes="closed")
 
-    # One folded front paw peeking out under her chin. No legs: a curled cat has
-    # nothing else showing, and a visible leg would turn the pose into a crouch.
-    box("PawL", -0.15, -0.62, 0.075, 0.20, 0.26, 0.15, m_under)
-    box("PawR",  0.15, -0.62, 0.075, 0.20, 0.26, 0.15, m_under)
-
-    # THE TAIL, wrapped round the front and past her nose.
+    # CHEST, filling from the floor up to her chin.
     #
-    # Everything else in this pose is one orange mass, so the tail is the only thing
-    # breaking the outline and it has to be unmistakable. It runs the length of her at
-    # ground level, which is where a wrapped tail physically goes, and most of that run
-    # is hidden behind her - correctly. What matters is the last stretch, which carries
-    # on past her face (head front is -0.77) into empty space and then hooks up. That
-    # part cannot be occluded by anything.
-    # The hooked tip must also CLEAR HER MUZZLE. Being nearer the camera, the tail
-    # draws over anything it shares screen space with, and the first version curled up
-    # straight through the muzzle patch - so her nose vanished and the tip read as
-    # part of her face. It now hooks up beyond y=-0.87, forward of the muzzle at
-    # -0.86..-0.76.
-    box("Tail1", TAIL_X,  0.38, 0.075, 0.13, 0.50, 0.15, m_coat)
-    box("Tail2", TAIL_X, -0.14, 0.075, 0.13, 0.54, 0.15, m_coat)
-    box("Tail3", TAIL_X, -0.62, 0.075, 0.13, 0.52, 0.15, m_coat)
-    box("Tail4", TAIL_X, -0.95, 0.200, 0.13, 0.16, 0.22, m_coat)
+    # Without it the head hangs forward of the mound with daylight underneath, and that
+    # gap does not read as a neck - it reads as a hole punched through her, because at
+    # sprite size a patch of background inside the silhouette is just a hole. A loafing
+    # cat's chest does reach the ground; the head rests on top of it.
+    box("Chest", 0, -0.54, 0.21, BODY_W - 0.04, 0.34, 0.42, m_coat)
+
+    # Pale bib down the chest front. The only light note in the pose, and it has to sit
+    # ABOVE the wrapped tail - anything pale at ground level here is simply drawn over.
+    box("Bib", 0, -0.72, 0.28, 0.24, 0.06, 0.28, m_under)
+
+    # NO LEGS AND NO PAWS. A visible leg turns a loaf into a crouch, and paws tucked at
+    # ground level would be covered by the tail anyway.
+
+    # THE TAIL, wrapped round the front with the tip hooking up clear of her face.
+    #
+    # Everything else here is one orange mass, so the tail is the only thing breaking
+    # the outline. It runs the length of her at ground level - where a wrapped tail
+    # physically goes - and most of that run is hidden behind her, correctly. What
+    # matters is the tip, which carries past her muzzle into empty space and hooks up.
+    #
+    # It sits well BELOW the muzzle (z 0.505..0.655) on purpose. Being nearer the
+    # camera the tail draws over anything it shares screen space with, and an earlier
+    # version hooked up straight through her nose, which vanished.
+    box("Tail1", TAIL_X,  0.36, 0.075, 0.13, 0.48, 0.15, m_coat)
+    box("Tail2", TAIL_X, -0.12, 0.075, 0.13, 0.48, 0.15, m_coat)
+    box("Tail3", TAIL_X, -0.60, 0.075, 0.13, 0.48, 0.15, m_coat)
+    box("Tail4", TAIL_X, -0.90, 0.210, 0.13, 0.16, 0.24, m_coat)
 
 
 # ----------------------------------------------------------------------------
 # A sleeping cat breathes and flicks its tail. That is the entire repertoire.
 BONES = {
     "root":     ((0, 0.20, 0),               (0, 0.20, 0.16)),
-    "spine":    ((0, 0.30, 0.24),            (0, -0.10, 0.42)),
+    "spine":    ((0, 0.26, 0.20),            (0, -0.20, 0.44)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
-    "tailBase": ((TAIL_X,  0.63, 0.075),     (TAIL_X, -0.41, 0.075)),
-    "tailTip":  ((TAIL_X, -0.41, 0.075),     (TAIL_X, -0.99, 0.100)),
+    "tailBase": ((TAIL_X,  0.60, 0.075),     (TAIL_X, -0.36, 0.075)),
+    "tailTip":  ((TAIL_X, -0.36, 0.075),     (TAIL_X, -0.95, 0.110)),
 }
 BONE_PARENT = {"spine": "root", "head": "spine",
                "tailBase": "root", "tailTip": "tailBase"}
 
 _WAIST = 3
 PART_BONE = {
-    "root":  [f"Body{i}" for i in range(_WAIST)] + ["PawL", "PawR"],
-    "spine": [f"Body{i}" for i in range(_WAIST, len(DOME))],
+    "root":  [f"Body{i}" for i in range(_WAIST)],
+    "spine": [f"Body{i}" for i in range(_WAIST, len(MOUND))] + ["Chest", "Bib"],
     "head":  FACE_PARTS,
     "tailBase": ["Tail1", "Tail2"],
     "tailTip":  ["Tail3", "Tail4"],
