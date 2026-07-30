@@ -1,4 +1,4 @@
-# Deskitty
+# Loaf
 
 A voxel cat who lives on the macOS dock as a desktop pet. She is a *status
 indicator with a personality*: how much work is queued changes her body, what the
@@ -49,7 +49,7 @@ always attributes is the no-reply form,
 ID), which is what the `newsletter` repo uses because Vercel silently refuses to
 deploy commits it can't attribute.
 
-**Remote:** `https://github.com/Ajinkya259/Deskitty` — **private**.
+**Remote:** `https://github.com/Ajinkya259/Loaf` — **private**.
 
 ### Commit messages
 
@@ -167,9 +167,9 @@ the load-bearing reference. Re-clone with
 | `ImageCharacterView.swift` | **Adapt closely** — sprite loading, `<state>1..N` cycling, `scaleEffect(x: facing)` mirroring, procedural motion layered on stills |
 | `SystemMonitor.swift` | **Adapt closely** — edge-triggered signals, not per-tick polling. Its RAM-pressure hold timer is a real bug fix worth inheriting |
 | `AppDelegate+Wander.swift` | **Adapt** — stroll → dwell → corner nap → wake-on-event, dock probing, sub-pixel accumulation |
-| `Emotion.swift` | **Structure only** — 857 lines of a LEGO minifig's feelings. Take the shape (renderer-agnostic enum, one sprite + one line per case), write Deskitty's own states |
+| `Emotion.swift` | **Structure only** — 857 lines of a LEGO minifig's feelings. Take the shape (renderer-agnostic enum, one sprite + one line per case), write Loaf's own states |
 
-Deskitty's new axis is the one lil-cleo doesn't have: task load as body size.
+Loaf's new axis is the one lil-cleo doesn't have: task load as body size.
 
 **Sprites currently available:** `side_idle`, `front_idle`, `sit`, `walk1..8`.
 Two contract details when writing the loader: map `sleep` explicitly to `sit`

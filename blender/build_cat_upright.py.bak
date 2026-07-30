@@ -1,4 +1,4 @@
-"""Build the Deskitty voxel cat from scratch in Blender, headless.
+"""Build the Loaf voxel cat from scratch in Blender, headless.
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cat.py
 
@@ -23,7 +23,7 @@ RENDER_OUT = os.path.join(HERE, "cat_idle.png")
 RENDER_SIDE_OUT = os.path.join(HERE, "cat_side.png")
 TARGET = Vector((0, 0, 1.0))
 
-# same fur spec as the style-pitch swatches (deskitty-style-pitch.html)
+# same fur spec as the style-pitch swatches (loaf-style-pitch.html)
 FUR_BASE  = "#E08A3E"
 FUR_DARK  = "#9C4F1D"
 EYE_DARK  = "#47572D"
@@ -102,7 +102,7 @@ PART_BONE = {
 
 def build_armature():
     arm_data = bpy.data.armatures.new("CatRig")
-    arm = bpy.data.objects.new("Deskitty", arm_data)
+    arm = bpy.data.objects.new("Loaf", arm_data)
     bpy.context.scene.collection.objects.link(arm)
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode="EDIT")

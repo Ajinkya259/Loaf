@@ -1,4 +1,4 @@
-"""Build the Deskitty voxel cat from scratch in Blender, headless.
+"""Build the Loaf voxel cat from scratch in Blender, headless.
 
     /Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cat.py
 
@@ -221,7 +221,7 @@ PART_BONE = {
 
 def build_armature():
     arm_data = bpy.data.armatures.new("CatRig")
-    arm = bpy.data.objects.new("Deskitty", arm_data)
+    arm = bpy.data.objects.new("Loaf", arm_data)
     bpy.context.scene.collection.objects.link(arm)
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode="EDIT")
@@ -333,7 +333,7 @@ def sprite_stage():
 def face(arm, side):
     """Turn the character, never the camera.
 
-    Deskitty's front is -Y and camera-right is +X, so +90 degrees about Z puts her in
+    Loaf's front is -Y and camera-right is +X, so +90 degrees about Z puts her in
     profile facing screen-right. Only right-facing sprites are rendered - the app
     mirrors them for leftward travel, exactly as lil-cleo's ImageCharacterView does
     with scaleEffect(x: facing).
