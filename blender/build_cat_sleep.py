@@ -30,7 +30,7 @@ Built as horizontal slabs of falling length, the same way the profile sit is: a 
 drawn as many small regular steps rather than a few big ones. See that file, and
 CLAUDE.md, for why nine passes were needed to learn it.
 """
-import bpy, os, sys
+import bpy, os, sys, math
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -47,19 +47,24 @@ BLEND = os.path.join(HERE, "cat_sleep.blend")
 
 # Front = -Y, up = +Z, ground = z 0.
 #
-# THE MOUND. Six horizontal slabs, floor upward: (z0, z1, y front, y back).
+# THE MOUND, generated as an ELLIPSE rather than hand-listed.
 #
-# Low and clearly WIDER THAN TALL - 1.45 across against 1.26 high including her ears,
-# where the profile sit is 1.54 high. That difference is what says "resting" before
-# any detail is read. Both edges pull in as it rises so it is a mound, not a box.
-MOUND = [
-    (0.000, 0.090, -0.36, 0.58),
-    (0.090, 0.180, -0.40, 0.62),
-    (0.180, 0.270, -0.40, 0.60),
-    (0.270, 0.360, -0.36, 0.54),
-    (0.360, 0.450, -0.26, 0.44),
-    (0.450, 0.520, -0.10, 0.30),
-]
+# Hand-listed, the top slabs jumped 0.10 and 0.16 in Y - 28 and 45 render pixels - and
+# those two steps were the whole staircase you could see. An ellipse spaces them the
+# way a curve actually does: tiny near the floor, growing toward the top. Nine slabs
+# instead of six for the same reason.
+#
+# Low and clearly WIDER THAN TALL, against the profile sit's 1.54 height. That
+# difference is what says "resting" before any detail is read.
+MOUND_Y, MOUND_A, MOUND_H = 0.11, 0.50, 0.60
+MOUND_TOP, MOUND_N = 0.52, 9
+MOUND = []
+for _i in range(MOUND_N):
+    _z0 = MOUND_TOP * _i / MOUND_N
+    _z1 = MOUND_TOP * (_i + 1) / MOUND_N
+    _half = MOUND_A * math.sqrt(max(0.0, 1 - (((_z0 + _z1) / 2) / MOUND_H) ** 2))
+    MOUND.append((_z0, _z1, MOUND_Y - _half, MOUND_Y + _half))
+
 SLAB_OVERLAP = 0.012   # added UPWARD, never centred, or the bottom slab breaks z=0
 
 # Head UP and forward, resting on the front of the mound. Same size as every other
@@ -108,12 +113,24 @@ def build_model():
     # at shoulder height - another hole punched through her.
     box("Chest", 0, -0.50, 0.22, BODY_W - 0.04, 0.48, 0.44, m_coat)
 
-    # Pale bib down the chest front. The only light note in the pose, and it has to sit
-    # ABOVE the wrapped tail - anything pale at ground level here is simply drawn over.
-    box("Bib", 0, -0.72, 0.28, 0.24, 0.06, 0.28, m_under)
+    # Pale bib down the chest front.
+    box("Bib", 0, -0.74, 0.30, 0.26, 0.06, 0.32, m_under)
 
-    # NO LEGS AND NO PAWS. A visible leg turns a loaf into a crouch, and paws tucked at
-    # ground level would be covered by the tail anyway.
+    # TUCKED PAWS, peeking over the wrapped tail.
+    #
+    # Value contrast is what this pose was missing, not outline. Every state that reads
+    # well has three values in it - orange body, pale legs, dark boots - and sleep had
+    # one, which is why it came out a flat orange blob however good the silhouette got.
+    #
+    # They sit at z 0.22, deliberately ABOVE the tail's ground run, so the tail crosses
+    # in front of their lower half and they peek out over the top. That is what a
+    # loafing cat's paws actually do under a wrapped tail, and it is also the only way
+    # they survive: anything pale at ground level here is simply drawn over.
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        box("Paw" + sfx, sx * 0.14, -0.70, 0.24, 0.19, 0.26, 0.18, m_under)
+        box("Toe" + sfx, sx * 0.14, -0.80, 0.23, 0.20, 0.10, 0.14, m_acc)
+
+    # NO LEGS. A visible leg turns a loaf into a crouch.
 
     # THE TAIL, wrapped right round her and tucked up in front of her chest.
     #
@@ -155,7 +172,7 @@ BONE_PARENT = {"spine": "root", "head": "spine",
 
 _WAIST = 3
 PART_BONE = {
-    "root":  [f"Body{i}" for i in range(_WAIST)],
+    "root":  [f"Body{i}" for i in range(_WAIST)] + ["PawL", "PawR", "ToeL", "ToeR"],
     "spine": [f"Body{i}" for i in range(_WAIST, len(MOUND))] + ["Chest", "Bib"],
     "head":  FACE_PARTS,
     # Filled in by build_armature(): the curve decides how many parts there are.
