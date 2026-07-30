@@ -23,7 +23,15 @@ from catlib import PARTS, material, box, rgb
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BLEND = os.path.join(HERE, "cat.blend")
-SPRITES = os.path.join(HERE, "sprites")   # all state sprites, one shared canvas
+# Blender renders STRAIGHT INTO the Swift package. There is no copy step and there
+# should never be one: a sync step between the renderer and the app is a drift bug
+# waiting to happen, and this project has already lost time to two of them. Same
+# arrangement as lil-cleo's render_states.py.
+#
+# A symlink here was tried first and does not work - SwiftPM's .copy duplicates the
+# link verbatim into the resource bundle, where its relative path no longer resolves,
+# and the app silently finds no sprites at all.
+SPRITES = os.path.join(HERE, "..", "Sources", "Loaf", "Resources", "sprites")
 
 # COMMITTED PALETTE - bicolour ginger with a monochrome face.
 #

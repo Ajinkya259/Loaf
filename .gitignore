@@ -40,3 +40,7 @@ dist/
 .swiftpm/
 
 .DS_Store
+
+# Blender writes sprites into the Swift package (Sources/Loaf/Resources/sprites),
+# and those ARE tracked - they are the app's assets. Only the review composites,
+# which make_previews.sh regenerates, are not.

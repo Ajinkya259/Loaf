@@ -74,7 +74,19 @@ blender/
   make_previews.sh     composites sprites over grey for review
   explore_*.py         design-phase studies. History, not source. Don't edit to
                        change the look — edit build_cat.py.
-  sprites/             ← the app's assets. Tracked. Everything else here is not.
+
+Package.swift          SwiftPM executable, macOS 14+, zero dependencies
+Makefile               make run / make cat / make help
+Sources/Loaf/
+  main.swift           entry point; accessory app, no dock icon
+  AppDelegate.swift    window, menu-bar item, geometry
+  AppDelegate+Wander.swift   the dock stroll state machine
+  LoafState.swift      the state enum — the behaviour↔art contract
+  CatEngine.swift      what she's doing, and who decided it
+  CatView.swift        sprite rendering, mirroring, procedural bob
+  Sprites.swift        bundle loading, cycle counting, caching
+  Settings.swift       persisted scale + wander toggle
+  Resources/sprites/   ← Blender renders STRAIGHT INTO HERE. No copy step (see §3).
 
 SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either side.
 Idea.md                original brain-dump. Superseded in places (see §6).
@@ -98,6 +110,12 @@ blender/build_all.sh
 Blender lives at `/Applications/Blender.app/Contents/MacOS/Blender` (5.2.0, via
 `brew install --cask blender`). Each script wipes the scene and rebuilds from
 nothing, so geometry, rig and palette changes are all one command.
+
+**Blender writes directly into `Sources/Loaf/Resources/sprites/`** — there is no copy
+step between the renderer and the app, and there should never be one. A sync step is a
+drift bug waiting to happen. A symlink was tried and does *not* work: SwiftPM's `.copy`
+duplicates the link verbatim into the resource bundle, where its relative path no
+longer resolves and the app silently finds no sprites at all.
 
 **Always `build_all.sh`, never a single script.** The standing and sitting builds
 drifted apart twice from single-script runs — once the stander kept obsolete ears
@@ -154,9 +172,35 @@ beats hue. Hue-shift shadows cooler rather than just darkening them.
 
 ## 5. The app
 
-**Not built yet.** Planned: SwiftPM executable, macOS 14+, **zero third-party
-dependencies**, AppKit borderless window + SwiftUI character view, `LSUIElement`
-accessory app with a menu-bar item.
+SwiftPM executable, macOS 14+, **zero third-party dependencies**, AppKit borderless
+window + SwiftUI character view, accessory app (no dock icon) with a 🍞 menu-bar item.
+
+```bash
+make run                    # build + launch
+LOAF_STATE=sit make run     # pin one state for inspection (idle | walk | look | sit)
+make stop
+```
+
+The zero-dependency rule is deliberate and worth holding. She runs all day, every day:
+every dependency is memory she holds the whole time, launch time on every login, and
+supply chain for something that needs nothing but AppKit, SwiftUI and a folder of PNGs.
+
+**Phase 1 is done** — window on the dock, stroll/dwell/corner-sit state machine, sprite
+cycling, menu-bar state picker. Measured: 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS,
+zero permissions requested.
+
+Two design points that aren't obvious from reading the code:
+
+**`CatEngine.pinned` is what stops the menu and the wander loop fighting.** Both want to
+set her state. When you pick one from the menu it wins outright and `setAuto` silently
+drops the wander loop's updates, so callers never need to know whether they're allowed
+to move her.
+
+**The menu is rebuilt on every open (`menuNeedsUpdate`)** rather than holding a dozen
+`NSMenuItem` references in sync. That makes the "no art yet" section self-updating: a
+state lights up the moment Blender renders its sprite, with no code change. Availability
+comes from `Sprites.exists`, which accepts a still **or** a cycle — checking only one
+marks either `sit` (a lone still) or `walk` (a cycle with no `walk.png`) as missing.
 
 `ref/lil-cleo/` is a shipped MIT desktop pet solving nearly the same problem and is
 the load-bearing reference. Re-clone with
