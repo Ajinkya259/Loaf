@@ -34,14 +34,20 @@ Verify it survived any clone or reconfiguration:
 
 ```bash
 git config --get user.name      # Ajinkya259
-git config --get user.email     # 163128787+Ajinkya259@users.noreply.github.com
+git config --get user.email     # ajinkyasambare25@gmail.com
 ```
 
-That email is not arbitrary — `163128787` is `Ajinkya259`'s GitHub user ID, which
-is what makes it the canonical no-reply address for the account and what makes
-commits attribute correctly on github.com. Do **not** substitute
-`ajinkyasambare25@gmail.com` (that's the public/Substack address) or
-`support@curious.pm` (a work account).
+Do **not** substitute `support@curious.pm` (a work account) or
+`ajinkyasambare259@gmail.com` (note the extra `9` — a different address, used by
+the sibling FlyThrough repo).
+
+For commits to attribute to the `Ajinkya259` profile on github.com, that gmail has
+to be a **verified email on that account**. If commits show up as an unlinked
+author, that's the reason — add it under Settings → Emails. The alternative that
+always attributes is the no-reply form,
+`163128787+Ajinkya259@users.noreply.github.com` (`163128787` is the account's user
+ID), which is what the `newsletter` repo uses because Vercel silently refuses to
+deploy commits it can't attribute.
 
 **Remote:** `https://github.com/Ajinkya259/Deskitty` — **private**.
 
