@@ -13,7 +13,7 @@ B=/Applications/Blender.app/Contents/MacOS/Blender
 # whenever she sat, the signal would only work in some poses and be worthless.
 for W in lean normal chonk; do
     echo "--- $W ---"
-    for SCRIPT in build_cat build_cat_sit build_cat_sit_side build_cat_sleep; do
+    for SCRIPT in build_cat build_cat_sit build_cat_sit_side build_cat_sleep build_cat_stressed; do
         LOAF_WEIGHT=$W "$B" -b -P "blender/$SCRIPT.py" 2>&1 | grep -E "Error" || true
     done
 done

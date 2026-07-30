@@ -173,7 +173,7 @@ FACE_REF_S = 0.66
 
 
 def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k,
-               eyes="open", ear_dy=0.0):
+               eyes="open", ear_dy=0.0, ears="up"):
     """Place the head and everything on it. Shared by every pose build.
 
     `head_w` is the width (X) and `head_s` the depth and height (Y and Z). Width is
@@ -216,21 +216,40 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k,
     # instead of a triangle growing out of the head. Height is not what makes an ear
     # read. The taper is.
     ear_z = head_z + head_s / 2                                   # head's top plane
-    for sx, sfx in ((-1, "L"), (1, "R")):
-        ex = sx * 0.26 * kw
-        ey = head_y - 0.05 * k + sx * ear_dy
-        box("Ear" + sfx,    ex, ey, ear_z + 0.035 * k,
-            0.24 * kw, 0.15 * k, 0.07 * k, m_coat)
-        box("EarMid" + sfx, ex, ey, ear_z + 0.105 * k,
-            0.17 * kw, 0.15 * k, 0.07 * k, m_coat)
-        box("EarTip" + sfx, ex, ey, ear_z + 0.1625 * k,
-            0.10 * kw, 0.15 * k, 0.045 * k, m_coat)
-        # SMALL inner ear. Filling the ear made each one a pale mound, and being the
-        # brightest thing on her head it pulled the eye up to the ears, not the face.
-        box("InEar" + sfx,  ex, ey - 0.075 * k, ear_z + 0.04 * k,
-            0.11 * kw, 0.05 * k, 0.06 * k, m_w)
-        box("InEarT" + sfx, ex, ey - 0.075 * k, ear_z + 0.105 * k,
-            0.07 * kw, 0.05 * k, 0.06 * k, m_w)
+    if ears == "flat":
+        # PINNED BACK, the way a frightened cat holds them, and the single strongest
+        # stress signal a cat has. The same three tiers swept backward along the skull
+        # instead of standing up off it, so the head's outline goes from pointed to
+        # rounded - which is the whole read. Names are unchanged, because FACE_PARTS
+        # splices them into every pose's bone map.
+        for sx, sfx in ((-1, "L"), (1, "R")):
+              ex = sx * 0.24 * kw
+              box("Ear" + sfx,    ex, head_y + 0.10 * k, ear_z - 0.030 * k,
+                  0.26 * kw, 0.24 * k, 0.08 * k, m_coat)
+              box("EarMid" + sfx, ex, head_y + 0.27 * k, ear_z - 0.055 * k,
+                  0.19 * kw, 0.18 * k, 0.07 * k, m_coat)
+              box("EarTip" + sfx, ex, head_y + 0.39 * k, ear_z - 0.075 * k,
+                  0.12 * kw, 0.12 * k, 0.06 * k, m_coat)
+              box("InEar" + sfx,  ex, head_y + 0.12 * k, ear_z + 0.012 * k,
+                  0.13 * kw, 0.16 * k, 0.03 * k, m_w)
+              box("InEarT" + sfx, ex, head_y + 0.28 * k, ear_z - 0.014 * k,
+                  0.09 * kw, 0.10 * k, 0.03 * k, m_w)
+    else:
+      for sx, sfx in ((-1, "L"), (1, "R")):
+          ex = sx * 0.26 * kw
+          ey = head_y - 0.05 * k + sx * ear_dy
+          box("Ear" + sfx,    ex, ey, ear_z + 0.035 * k,
+              0.24 * kw, 0.15 * k, 0.07 * k, m_coat)
+          box("EarMid" + sfx, ex, ey, ear_z + 0.105 * k,
+              0.17 * kw, 0.15 * k, 0.07 * k, m_coat)
+          box("EarTip" + sfx, ex, ey, ear_z + 0.1625 * k,
+              0.10 * kw, 0.15 * k, 0.045 * k, m_coat)
+          # SMALL inner ear. Filling the ear made each one a pale mound, and being the
+          # brightest thing on her head it pulled the eye up to the ears, not the face.
+          box("InEar" + sfx,  ex, ey - 0.075 * k, ear_z + 0.04 * k,
+              0.11 * kw, 0.05 * k, 0.06 * k, m_w)
+          box("InEarT" + sfx, ex, ey - 0.075 * k, ear_z + 0.105 * k,
+              0.07 * kw, 0.05 * k, 0.06 * k, m_w)
 
     # Muzzle PATCH, not a protruding snout, and WIDER THAN TALL - head-on a cat's
     # muzzle is two whisker pads side by side, not a square.
@@ -249,6 +268,16 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k,
     # BIG and TALLER THAN WIDE: a wide flat eye reads as a narrowed one whatever the
     # pupil does, which is most of why she used to look permanently annoyed.
     for sx, sfx in ((-1, "L"), (1, "R")):
+        if eyes == "wide":
+            # A frightened cat's pupils go FULLY ROUND and huge. That is the opposite
+            # of her normal vertical slit, so swapping it is a bigger change than the
+            # size - the slit is the most cat-specific thing on the model, and losing
+            # it is exactly what "this cat is not relaxed" should look like.
+            box("Eye" + sfx, sx * 0.165 * kw, face_y - 0.02 * k, head_z + 0.06 * k,
+                0.22 * kw, 0.05 * k, 0.22 * k, m_w)
+            box("Pup" + sfx, sx * 0.165 * kw, face_y - 0.045 * k, head_z + 0.06 * k,
+                0.15 * kw, 0.05 * k, 0.15 * k, m_k)
+            continue
         if eyes == "closed":
             # A shut lid: a dark bar the width of the open eye, with a shorter one
             # below the outer half, so it reads as a curve rather than a dash.
@@ -282,6 +311,12 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k,
     # half. Pushing the decals out costs nothing: in profile X only decides what is in
     # front of what, never where anything lands on screen.
     for sx, sfx in ((-1, "L"), (1, "R")):
+        if eyes == "wide":
+            box("EyeSide" + sfx, sx * (cheek_x + 0.10 * kw), head_y - 0.13 * k,
+                head_z + 0.06 * k, 0.05, 0.22 * k, 0.22 * k, m_w)
+            box("PupSide" + sfx, sx * (cheek_x + 0.125 * kw), head_y - 0.15 * k,
+                head_z + 0.06 * k, 0.05, 0.15 * k, 0.15 * k, m_k)
+            continue
         if eyes == "closed":
             box("EyeSide" + sfx, sx * (cheek_x + 0.10 * kw), head_y - 0.13 * k,
                 head_z + 0.05 * k, 0.05, 0.20 * k, 0.045 * k, m_k)
