@@ -17,12 +17,12 @@ enum LoafState: String, CaseIterable, Identifiable {
     case look           // standing, turned to face you
     case sit            // sitting, front
     case sitSide        // sitting, profile — the same angle she walks in
-    case sleep          // curled up asleep, profile
+    case sleep          // asleep, breathing cycle, profile
+    case stressed       // hunched and bristling, shiver cycle, profile
     case jump           // 6-frame arc, profile — plays once, never held
 
     // Planned. See CLAUDE.md §6. No art yet; the menu disables these.
     case chill          // lounging with a prop vignette (coffee, popcorn)
-    case stressed       // hunched, ears flat — blocked on ear bones
     case wake           // the morning stretch
 
     var id: String { rawValue }
@@ -72,7 +72,7 @@ enum LoafState: String, CaseIterable, Identifiable {
     /// width axis, exactly what a side camera cannot see. The real lesson was
     /// "front-designed geometry doesn't survive profile", not "a sit can't be shown in
     /// profile". See SPRITE_CONTRACT.md §2.
-    var isProfile: Bool { self == .idle || self == .walk || self == .sitSide || self == .sleep || self == .jump }
+    var isProfile: Bool { self == .idle || self == .walk || self == .sitSide || self == .sleep || self == .jump || self == .stressed }
 
     /// Locomotion states travel, so the wander loop moves the window under them.
     /// Everything else plays in place.
@@ -86,8 +86,12 @@ enum LoafState: String, CaseIterable, Identifiable {
     /// is a real feline resting rate.
     var fps: Double {
         switch self {
-        case .sleep: 1.5
-        default:     6.5
+        // Slow enough to read as breathing rather than panting.
+        case .sleep:    1.5
+        // Fast enough to read as a tremble. The same trick as the breath, inverted:
+        // there the motion had to be slow to say calm, here quick to say alarm.
+        case .stressed: 9.0
+        default:        6.5
         }
     }
 
