@@ -137,12 +137,20 @@ FACE_REF_W = 0.78
 FACE_REF_S = 0.66
 
 
-def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k, eyes="open"):
+def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k,
+               eyes="open", ear_dy=0.0):
     """Place the head and everything on it. Shared by every pose build.
 
     `head_w` is the width (X) and `head_s` the depth and height (Y and Z). Width is
     the free axis - X is invisible to the profile camera - which is why the front view
     could be fixed without touching the walk.
+
+    `ear_dy` staggers the two ears fore-and-aft. They normally sit at the same Y, so in
+    profile they overlap into ONE narrow stub - which is why a lying pose's ear reads as
+    a horn rather than an ear. Offsetting them shows two ear shapes side by side, the
+    most compact unmistakable cat signal there is. Only worth it where the head has no
+    other structure around it; the standing poses are verified byte-identical at 0.0 and
+    must stay that way.
 
     `eyes="closed"` swaps the open eye for a dark curved lid, for sleeping poses. It
     is not a detail: a low curled body still reads as a cat resting, and closed eyes
@@ -175,17 +183,18 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k, eyes="open"):
     ear_z = head_z + head_s / 2                                   # head's top plane
     for sx, sfx in ((-1, "L"), (1, "R")):
         ex = sx * 0.26 * kw
-        box("Ear" + sfx,    ex, head_y - 0.05 * k, ear_z + 0.035 * k,
+        ey = head_y - 0.05 * k + sx * ear_dy
+        box("Ear" + sfx,    ex, ey, ear_z + 0.035 * k,
             0.24 * kw, 0.15 * k, 0.07 * k, m_coat)
-        box("EarMid" + sfx, ex, head_y - 0.05 * k, ear_z + 0.105 * k,
+        box("EarMid" + sfx, ex, ey, ear_z + 0.105 * k,
             0.17 * kw, 0.15 * k, 0.07 * k, m_coat)
-        box("EarTip" + sfx, ex, head_y - 0.05 * k, ear_z + 0.1625 * k,
+        box("EarTip" + sfx, ex, ey, ear_z + 0.1625 * k,
             0.10 * kw, 0.15 * k, 0.045 * k, m_coat)
         # SMALL inner ear. Filling the ear made each one a pale mound, and being the
         # brightest thing on her head it pulled the eye up to the ears, not the face.
-        box("InEar" + sfx,  ex, head_y - 0.125 * k, ear_z + 0.04 * k,
+        box("InEar" + sfx,  ex, ey - 0.075 * k, ear_z + 0.04 * k,
             0.11 * kw, 0.05 * k, 0.06 * k, m_w)
-        box("InEarT" + sfx, ex, head_y - 0.125 * k, ear_z + 0.105 * k,
+        box("InEarT" + sfx, ex, ey - 0.075 * k, ear_z + 0.105 * k,
             0.07 * kw, 0.05 * k, 0.06 * k, m_w)
 
     # Muzzle PATCH, not a protruding snout, and WIDER THAN TALL - head-on a cat's
@@ -659,21 +668,29 @@ def render_walk(arm, n=WALK_FRAMES):
 # both ends of every jump. The crouch is carried by the spine arch and the leg angles
 # instead, and the app adds the squash.
 #
-# Degrees: (spine, front legs, back legs, tail, head)
+# `lift` compensates the rotating-foot dip. Swinging a rigid leg about the hip carries
+# the boot's trailing corner below the vertical foot position, so every posed frame
+# measures a few pixels under the 24px ground line. Airborne frames don't care - the
+# app has her off the ground anyway - but frames 1 and 6 are her CROUCH and her
+# LANDING, when she is stationary and in contact, and a sink there is visible at the
+# start and end of every single jump. Those two are lifted back to exactly 24.
+#
+# Degrees, then lift in world units: (spine, front legs, back legs, tail, head, lift)
 JUMP_POSES = [
-    (  7, -20,  22, -14,   7),   # 1 gather   - coiled, weight back
-    (-11, -34, -26, -18,  -5),   # 2 push     - body extends, back legs drive
-    ( -5,  32,  36,  -8,  -7),   # 3 tuck     - airborne, legs gathered up
-    (  0, -20,  28,   8,  -2),   # 4 stretch  - apex, reaching out long
-    (  6, -38,  12,  16,   5),   # 5 reach    - front legs down for the ground
-    ( 10, -12, -18,  12,   9),   # 6 absorb   - landed, compressing
+    (  7, -20,  22, -14,   7, 0.032),   # 1 gather  - coiled, weight back
+    (-11, -34, -26, -18,  -5, 0.000),   # 2 push    - body extends, back legs drive
+    ( -5,  32,  36,  -8,  -7, 0.000),   # 3 tuck    - airborne, legs gathered up
+    (  0, -20,  28,   8,  -2, 0.000),   # 4 stretch - apex, reaching out long
+    (  6, -38,  12,  16,   5, 0.000),   # 5 reach   - front legs down for the ground
+    ( 10, -12, -18,  12,   9, 0.018),   # 6 absorb  - landed, compressing
 ]
 
 
 def render_jump(arm):
     """Six jump poses, sampled into `jump1..6.png`."""
     pb = arm.pose.bones
-    for i, (spine, legf, legb, tail, head) in enumerate(JUMP_POSES):
+    for i, (spine, legf, legb, tail, head, lift) in enumerate(JUMP_POSES):
+        arm.location[2] = lift
         pb["spine"].rotation_euler[0] = math.radians(spine)
         for b in ("legFL", "legFR"):
             pb[b].rotation_euler[0] = math.radians(legf)
@@ -684,6 +701,7 @@ def render_jump(arm):
         pb["tailTip"].rotation_euler[0]  = math.radians(tail * 1.6)
         pb["head"].rotation_euler[0]     = math.radians(head)
         render_to(os.path.join(SPRITES, f"jump{i + 1}.png"))
+    arm.location[2] = 0.0
     rest_pose(arm)
 
 

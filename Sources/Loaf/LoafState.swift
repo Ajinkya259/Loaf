@@ -80,6 +80,19 @@ enum LoafState: String, CaseIterable, Identifiable {
     /// Everything else plays in place.
     var isLocomotion: Bool { self == .walk }
 
+    /// Frames per second for this state's cycle.
+    ///
+    /// Not one global rate. The walk was tuned at 6.5fps against a real mocap
+    /// reference, but running the sleep breath at that speed is four frames in 0.6s -
+    /// a cat panting, not sleeping. 1.5fps makes one breath every 2.7 seconds, which
+    /// is a real feline resting rate.
+    var fps: Double {
+        switch self {
+        case .sleep: 1.5
+        default:     6.5
+        }
+    }
+
     /// Plays once and ends, rather than looping or being held.
     ///
     /// The menu treats these differently: picking one *performs* it and hands control

@@ -66,6 +66,41 @@ probably invisible; at larger scales it will not be. Same root cause as the know
 "the walk is a pendulum, not a walk" problem — rigid single-segment legs. Judge it on
 screen before spending renders on it.
 
+### Open item: the jump's airborne frames sit below the ground line too
+
+| frame | 1 gather | 2 push | 3 tuck | 4 stretch | 5 reach | 6 absorb |
+|---|---|---|---|---|---|---|
+| gap above bottom edge | **24** | 20 | 18 | 16 | 17 | **24** |
+
+Same cause as the walk — a rigid foot rotating about the hip carries its trailing
+corner under the floor, and the jump swings further so the dip is larger.
+
+Frames **1 and 6 are fixed**, via a per-pose `lift` in `JUMP_POSES`. Those two are her
+crouch and her landing: she is stationary and in contact, so a sink there is visible at
+the start and end of every single jump. The middle four are left alone deliberately —
+she is airborne and the app has lifted the window anyway, so nothing shows.
+
+### The sleeping cycle
+
+`sleep` is the one state that ships as a cycle for a reason other than locomotion.
+
+A cat lying on the floor is a solid mass touching the ground along its whole length, so
+unlike every standing pose it has **no negative space inside its outline** — and the
+holes between her legs are most of why the idle sprite reads. Seven passes of reshaping
+that outline could not manufacture gaps the pose does not have. Motion is the way out: a
+shape that visibly breathes reads as a sleeping animal, and the identical shape frozen
+reads as a rock.
+
+Two things this needs that the walk didn't:
+
+- **Its own frame rate.** `LoafState.fps` is per-state. The walk's 6.5fps run over four
+  breath frames is one breath every 0.6s, which is a cat panting. 1.5fps gives one every
+  2.7s, a real feline resting rate.
+- **Only parts that cannot reach the floor may breathe.** The flank is split out as its
+  own block for exactly this: it owns the visible top edge but sits 0.23 clear of the
+  ground with solid body beneath. Breathing the whole spine swung her extended front
+  legs 18px into the floor, and the head — a child of spine — swung 26px.
+
 **Why the camera never moves.** Ported from lil-cleo's `render_states.py`. A fixed camera
 plus a character that rotates is the only way to guarantee identical scale and an
 identical ground row across every state. Moving the camera per view lets both drift

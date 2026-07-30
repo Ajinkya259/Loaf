@@ -91,7 +91,16 @@ def build_model():
     # A long low body: haunch, barrel, chest. Slightly different heights so the top
     # edge has some shape rather than being one flat plank.
     box("Haunch", 0, HAUNCH_Y, HAUNCH_Z, BODY_W + 0.04, 0.40, 0.46, m_coat)
-    box("Body",   0, BODY_Y,   BODY_Z,   BODY_W,        0.56, 0.34, m_coat)
+    box("Body",   0, BODY_Y,   0.14,     BODY_W,        0.56, 0.28, m_coat)
+    # THE FLANK is the only part that breathes, and it is split out purely so it CAN.
+    #
+    # It rides on top of the body, so it owns the visible top edge between neck and
+    # hip - but its underside is 0.23 clear of the floor, with solid body beneath it.
+    # That means it can rise and fall without any risk of a limb breaking through z=0,
+    # which is exactly what happened when the whole spine breathed: the pivot sits 1.4
+    # units from her extended front legs, so 2.6 degrees swung them 18px into the floor
+    # and took one frame's ground line from 24px to 4px.
+    box("Flank",  0, BODY_Y,   0.30,     BODY_W,        0.52, 0.14, m_coat)
     # THE NECK, and it is the point of this layout. It is deliberately LOW - it joins
     # the head to the body along the floor and stops at z 0.28, which opens a notch of
     # background above it between the back of her head and the front of her body.
@@ -108,7 +117,12 @@ def build_model():
     # shadow she is sitting on rather than as any part of her.
     box("Belly", 0, 0.16, 0.05, BODY_W + 0.01, 0.50, 0.10, m_under)
 
-    build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k, eyes="closed")
+    # ear_dy staggers the two ears fore-and-aft. At the same Y they overlap into one
+    # narrow stub in profile, which is why her ear read as a horn; offset, you get two
+    # ear shapes, and that is the most compact unmistakable cat signal available. Worth
+    # it here precisely because a lying head has no other structure around it.
+    build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k,
+               eyes="closed", ear_dy=0.10)
 
     # FRONT LEGS REACHING FORWARD, flat along the ground and out past her nose.
     #
@@ -144,17 +158,25 @@ def build_model():
 # A sleeping cat breathes and twitches a tail. That is the entire repertoire.
 BONES = {
     "root":     ((0, 0.30, 0),               (0, 0.30, 0.16)),
-    "spine":    ((0, 0.50, 0.20),            (0, -0.30, 0.24)),
+    "spine":    ((0, 0.44, 0.26),            (0, -0.12, 0.30)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
     "tailBase": ((-0.30, 0.72, 0.34),        (-0.30, 0.97, 0.19)),
     "tailTip":  ((-0.30, 0.97, 0.19),        (-0.30, 1.08, 0.27)),
 }
-BONE_PARENT = {"spine": "root", "head": "spine",
+# HEAD HANGS OFF ROOT, NOT SPINE. As a child of spine it inherited the breath, and
+# with the spine pivot 1.35 units from her chin that swung the head's front-bottom
+# corner 26px - straight through the floor on half the cycle. Only the flank breathes
+# from the spine; the head gets its own much smaller nod.
+BONE_PARENT = {"spine": "root", "head": "root",
                "tailBase": "root", "tailTip": "tailBase"}
 TAIL_PARTS = []
 PART_BONE = {
-    "root":  ["Haunch", "LegBL", "LegBR", "ToeBL", "ToeBR"],
-    "spine": ["Body", "Neck", "Belly", "LegFL", "LegFR", "ToeFL", "ToeFR"],
+    # Everything that touches the floor stays on root, so nothing the breath drives
+    # can ever reach z=0.
+    "root":  ["Haunch", "Body", "Neck", "Belly",
+              "LegFL", "LegFR", "ToeFL", "ToeFR",
+              "LegBL", "LegBR", "ToeBL", "ToeBR"],
+    "spine": ["Flank"],
     "head":  FACE_PARTS,
     "tailBase": [],
     "tailTip":  [],
@@ -200,6 +222,33 @@ def build_armature():
     return arm
 
 
+# SHE BREATHES, and this is the single most important thing in the pose.
+#
+# A cat lying on the floor is a solid mass touching the ground along its whole length,
+# so unlike every standing pose it has NO negative space inside its outline - and the
+# holes between her legs are most of why the idle sprite reads. Seven passes of
+# reshaping the outline could not manufacture the gaps this pose does not have.
+#
+# Motion is the way out. A shape that visibly breathes reads as a sleeping animal; the
+# identical shape frozen reads as a rock. Four frames of a slow spine lift, played at
+# 1.5fps, is one breath every 2.7 seconds - a real resting rate for a cat.
+BREATH_FRAMES = 4
+BREATH = math.radians(4.0)
+
+
+def render_breath(arm):
+    pb = arm.pose.bones
+    for i in range(BREATH_FRAMES):
+        ph = 2 * math.pi * i / BREATH_FRAMES
+        # Tiny. A visible heave reads as panting, not sleeping - the whole effect
+        # should be barely perceptible until you notice it isn't a still image.
+        pb["spine"].rotation_euler[0] = BREATH * math.sin(ph)
+        pb["head"].rotation_euler[0] = BREATH * 0.5 * math.sin(ph)
+        # The tail lags a quarter cycle, so she doesn't pulse as one rigid object.
+        pb["tailTip"].rotation_euler[0] = BREATH * 1.6 * math.sin(ph + math.pi / 2)
+        render_to(os.path.join(SPRITES, f"sleep{i + 1}.png"))
+
+
 def show(names, visible):
     for n in names:
         PARTS[n].hide_render = not visible
@@ -218,7 +267,7 @@ def main():
     os.makedirs(SPRITES, exist_ok=True)
     face(arm, side=True, dx=SLEEP_DX)
     show(FACE_CHEEK_DECALS, True); show(FACE_FRONT_DECALS, False)
-    render_to(os.path.join(SPRITES, "sleep.png"))
+    render_breath(arm)
 
 
 if __name__ == "__main__":
