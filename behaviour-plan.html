@@ -1,0 +1,474 @@
+<title>Deskitty — behaviour plan</title>
+<style>
+:root{
+  /* Taken from the cat: her fur, her ink, her eyes, her nose. The plate colour is
+     the literal backdrop every preview in this project is composited onto, because
+     a white cat is invisible on white. */
+  --ink:#1D1D24; --ink-2:#262630; --line:#3A3A46; --plate:#33333B;
+  --fur:#F2EEE6; --dim:#9B9BAA; --faint:#6E6E7E;
+  --eye:#4E93C4; --nose:#E0899C;
+  --calm:#7FA88B; --busy:#D9A24B; --alarm:#D9695F;
+  --bg:var(--ink); --card:var(--ink-2); --tx:var(--fur); --tx-2:var(--dim);
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:light){
+  :root{ --bg:#E9EAEE; --card:#F5F5F8; --tx:#1D1D24; --tx-2:#5A5A68;
+         --line:#D2D3DA; --faint:#8A8A98; --eye:#3B7CAC; }
+}
+:root[data-theme="dark"]{ --bg:#1D1D24; --card:#262630; --tx:#F2EEE6; --tx-2:#9B9BAA;
+  --line:#3A3A46; --faint:#6E6E7E; --eye:#4E93C4; }
+:root[data-theme="light"]{ --bg:#E9EAEE; --card:#F5F5F8; --tx:#1D1D24; --tx-2:#5A5A68;
+  --line:#D2D3DA; --faint:#8A8A98; --eye:#3B7CAC; }
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);
+     font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:60px 28px 100px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:clamp(32px,5.2vw,50px);font-weight:800;letter-spacing:-.028em;line-height:1.04}
+h2{font-size:23px;font-weight:750;letter-spacing:-.016em}
+h3{font-size:15px;font-weight:700;letter-spacing:-.006em}
+p{margin:0}
+.lede{color:var(--tx-2);font-size:18px;max-width:62ch;margin-top:16px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+         text-transform:uppercase;color:var(--eye);font-weight:600}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header{border-bottom:1px solid var(--line);padding-bottom:34px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.tag{font-family:var(--mono);font-size:11.5px;color:var(--tx-2);
+     border:1px solid var(--line);border-radius:999px;padding:3px 11px}
+
+section{margin-top:64px}
+.shead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+       border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:28px}
+.shead p{color:var(--tx-2);font-size:14px}
+
+/* ---- the day spine: a real sequence, so it gets real numbers ---- */
+.day{display:grid;gap:0}
+.beat{display:grid;grid-template-columns:52px 190px 1fr;gap:24px;
+      padding:26px 0;border-bottom:1px solid var(--line);align-items:start}
+.beat:last-child{border-bottom:0}
+.num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--eye);
+     padding-top:6px;letter-spacing:.06em}
+.stage{background:var(--plate);border-radius:10px;padding:10px;display:flex;
+       align-items:flex-end;justify-content:center;min-height:150px;
+       border:1px solid rgba(255,255,255,.05)}
+.stage img{width:100%;max-width:168px;height:auto;image-rendering:pixelated;display:block}
+.beat h3{margin-bottom:3px}
+.when{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-bottom:10px}
+.beat p{color:var(--tx-2);font-size:14.5px;max-width:56ch}
+.exits{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
+.exit{font-family:var(--mono);font-size:11px;color:var(--tx-2);background:var(--card);
+      border:1px solid var(--line);border-radius:5px;padding:2.5px 8px}
+.exit b{color:var(--tx);font-weight:600}
+
+/* ---- state reference ---- */
+.states{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:16px}
+.state{background:var(--card);border:1px solid var(--line);border-radius:12px;
+       padding:14px;display:flex;flex-direction:column;gap:11px}
+.state .stage{min-height:132px}
+.sid{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.state p{font-size:13px;color:var(--tx-2)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);
+      font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+      border-radius:999px;padding:2px 9px;border:1px solid}
+.dot{width:6px;height:6px;border-radius:50%}
+.p-loco{color:var(--eye);border-color:color-mix(in srgb,var(--eye) 40%,transparent)}
+.p-loco .dot{background:var(--eye)}
+.p-expr{color:var(--nose);border-color:color-mix(in srgb,var(--nose) 40%,transparent)}
+.p-expr .dot{background:var(--nose)}
+
+.walkbox{display:flex;gap:20px;align-items:center;flex-wrap:wrap;
+         background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.walkbox .stage{min-height:160px;flex:0 0 190px}
+.walkbox div{flex:1 1 260px}
+button{font:inherit;font-family:var(--mono);font-size:12px;padding:6px 14px;
+       background:transparent;color:var(--tx);border:1px solid var(--line);
+       border-radius:7px;cursor:pointer;margin-top:12px}
+button:hover{border-color:var(--eye);color:var(--eye)}
+button:focus-visible{outline:2px solid var(--eye);outline-offset:2px}
+
+/* ---- tables ---- */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);
+      vertical-align:top}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+   color:var(--faint);font-weight:600;background:var(--card)}
+tr:last-child td{border-bottom:0}
+td.mono{font-size:13px;white-space:nowrap}
+.sig{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.sig .dot{width:7px;height:7px;border-radius:2px}
+
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:16px}
+.rule{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:17px 18px}
+.rule h3{margin-bottom:7px}
+.rule p{font-size:13.5px;color:var(--tx-2)}
+.rule .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+         text-transform:uppercase;color:var(--faint);display:block;margin-bottom:9px}
+
+.warn{border-left:3px solid var(--busy);background:var(--card);border-radius:0 12px 12px 0;
+      padding:18px 22px;margin-top:22px}
+.warn h3{color:var(--busy);margin-bottom:7px}
+.warn p{font-size:14px;color:var(--tx-2);max-width:64ch}
+.warn p+p{margin-top:10px}
+.calc{font-family:var(--mono);font-size:13px;color:var(--tx);margin-top:12px;
+      display:inline-block;border:1px solid var(--line);border-radius:7px;padding:8px 13px}
+
+footer{margin-top:72px;padding-top:26px;border-top:1px solid var(--line);
+       color:var(--faint);font-size:13px}
+
+@media (max-width:720px){
+  .beat{grid-template-columns:34px 1fr;gap:16px}
+  .beat .stage{grid-column:2}
+  .wrap{padding:40px 18px 70px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Deskitty · behaviour spec</p>
+  <h1>What she does, and when she does it.</h1>
+  <p class="lede">Eleven sprites exist. This is the plan for wiring them to a day —
+  which state runs by default, what interrupts it, how long each one holds, and what
+  she falls back to. Every cat below is a real render from <span class="mono">cat.blend</span>.</p>
+  <div class="meta">
+    <span class="tag">640 × 512 · bottom-centre anchor</span>
+    <span class="tag">side = locomotion · front = personality</span>
+    <span class="tag">11 sprites built · 5 to go</span>
+  </div>
+</header>
+
+<section>
+  <div class="shead">
+    <h2>The day</h2>
+    <p>Seven beats, in order. Steps 2–5 loop; 1 and 7 are the bookends.</p>
+  </div>
+
+  <div class="day">
+    <div class="beat">
+      <div class="num">01</div>
+      <div class="stage"><img id="s-wake" alt="Deskitty sitting, front view"></div>
+      <div>
+        <h3>First light</h3>
+        <p class="when">trigger: first unlock after 04:00 · once per day</p>
+        <p>She stretches awake, then sits and delivers the morning line — what's on
+        today, pulled from the schedule. This is the one moment she speaks unprompted,
+        which is exactly why it must fire once and never twice.</p>
+        <div class="exits">
+          <span class="exit">holds <b>~6s</b></span>
+          <span class="exit">then <b>standby</b></span>
+          <span class="exit">resets at <b>01:00</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <div class="num">02</div>
+      <div class="stage"><img id="s-sit" alt="Deskitty sitting"></div>
+      <div>
+        <h3>Standby</h3>
+        <p class="when">default · no signal crossing a threshold</p>
+        <p>Her resting behaviour, and where she spends most of the day. Sit for 8–20
+        seconds, glance around, stand, walk a short distance along the dock, sit again.
+        The randomised dwell is what stops her reading as a looping GIF.</p>
+        <div class="exits">
+          <span class="exit">dwell <b>8–20s</b> random</span>
+          <span class="exit">walks <b>60–200px</b></span>
+          <span class="exit">any signal <b>interrupts</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <div class="num">03</div>
+      <div class="stage"><img id="s-chonk" alt="Deskitty standing, side view"></div>
+      <div>
+        <h3>The work piles up</h3>
+        <p class="when">signal: task load crosses a level boundary</p>
+        <p>Fatness is not a state — it's a dial that applies to whatever she's already
+        doing. Cross a threshold and she inflates a level, then carries on with standby
+        at the new weight. In profile this has to read as belly depth, since width is
+        invisible from the side.</p>
+        <div class="exits">
+          <span class="exit">levels <b>0 → 3</b></span>
+          <span class="exit">eases over <b>1.5s</b></span>
+          <span class="exit">deflates as tasks <b>close</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <div class="num">04</div>
+      <div class="stage"><img id="s-stress" alt="Deskitty front view"></div>
+      <div>
+        <h3>The machine strains</h3>
+        <p class="when">signal: sustained CPU, thermal, or memory pressure</p>
+        <p>The one true interrupt. She hunches small, flattens her ears and tucks her
+        tail — flattened ears are the most readable stress cue in the whole set, which
+        is why the ears need their own bones. Holds, then decays rather than snapping
+        back.</p>
+        <div class="exits">
+          <span class="exit">needs <b>&gt;8s sustained</b></span>
+          <span class="exit">holds <b>12s</b></span>
+          <span class="exit">decays over <b>4s</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <div class="num">05</div>
+      <div class="stage"><img id="s-chill" alt="Deskitty sitting"></div>
+      <div>
+        <h3>All clear</h3>
+        <p class="when">signal: zero tasks AND system quiet for 2 min</p>
+        <p>Nothing queued, nothing hot. Sunglasses, headphones, a nod to a beat you
+        can't hear. The empty state has to be the best-looking one she has — it's what
+        you see when everything is fine, and "fine" shouldn't look like "off".</p>
+        <div class="exits">
+          <span class="exit">any task <b>exits instantly</b></span>
+          <span class="exit">lowest <b>priority</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <div class="num">06</div>
+      <div class="stage"><img id="s-sleep" alt="Deskitty sitting"></div>
+      <div>
+        <h3>You leave</h3>
+        <p class="when">signal: no keyboard or mouse for 10 min</p>
+        <p>Curls up and breathes. Wakes on the first input event, not on a timer —
+        she should already be sitting up by the time you've focused a window.</p>
+        <div class="exits">
+          <span class="exit">wake on <b>first input</b></span>
+          <span class="exit">skips <b>stretch</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <div class="num">07</div>
+      <div class="stage"><img id="s-night" alt="Deskitty sitting"></div>
+      <div>
+        <h3>Late</h3>
+        <p class="when">clock: past 01:00 and still working</p>
+        <p>Sleep becomes sticky — she settles faster and stays down longer. The only
+        beat driven by the clock rather than a machine signal, and the only one that's
+        a comment on you rather than on the computer. Keep it wordless.</p>
+        <div class="exits">
+          <span class="exit">idle threshold <b>10m → 3m</b></span>
+          <span class="exit">arms <b>step 01</b></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>Built already</h2>
+    <p>Rendered, on-contract, ready to wire up.</p>
+  </div>
+
+  <div class="walkbox">
+    <div class="stage"><img id="walk" alt="Deskitty walk cycle animating"></div>
+    <div>
+      <p class="eyebrow">walk1 – walk8</p>
+      <h3 style="margin:5px 0 7px">The walk cycle</h3>
+      <p style="color:var(--tx-2);font-size:14px;max-width:52ch">Eight frames at 12fps,
+      two-beat diagonal gait — front-left swings with back-right. She walks in place;
+      the app moves the window. Travel baked into a sprite would fight the anchor.</p>
+      <button id="toggle" type="button">pause</button>
+    </div>
+  </div>
+
+  <div class="states" style="margin-top:16px">
+    <div class="state">
+      <div class="stage"><img id="c-side" alt="side idle"></div>
+      <div class="sid">side_idle</div>
+      <span class="pill p-loco"><span class="dot"></span>locomotion</span>
+      <p>Resting profile, and the app's fallback for any state with no art yet. Must
+      always exist.</p>
+    </div>
+    <div class="state">
+      <div class="stage"><img id="c-front" alt="front idle"></div>
+      <div class="sid">front_idle</div>
+      <span class="pill p-expr"><span class="dot"></span>personality</span>
+      <p>Standing, facing you. The neutral she returns to between expressive beats.</p>
+    </div>
+    <div class="state">
+      <div class="stage"><img id="c-sit" alt="sit"></div>
+      <div class="sid">sit</div>
+      <span class="pill p-expr"><span class="dot"></span>personality</span>
+      <p>Attentive and waiting. The single most-used frame of the day — standby lives
+      here.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>Signals in</h2>
+    <p>What the app watches, and what each one is allowed to move.</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr>
+        <th>Signal</th><th>Source</th><th>Threshold</th><th>Moves</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="sig"><span class="dot" style="background:var(--busy)"></span>Task load</span></td>
+          <td>Her own list, or ingested</td>
+          <td class="mono">levels at 1 / 4 / 9</td>
+          <td>Body fatness, 0–3</td>
+        </tr>
+        <tr>
+          <td><span class="sig"><span class="dot" style="background:var(--alarm)"></span>CPU</span></td>
+          <td><span class="mono">host_statistics64</span></td>
+          <td class="mono">&gt;70% for 8s</td>
+          <td>Stress posture</td>
+        </tr>
+        <tr>
+          <td><span class="sig"><span class="dot" style="background:var(--alarm)"></span>Thermal</span></td>
+          <td><span class="mono">ProcessInfo.thermalState</span></td>
+          <td class="mono">≥ .serious</td>
+          <td>Stress posture</td>
+        </tr>
+        <tr>
+          <td><span class="sig"><span class="dot" style="background:var(--alarm)"></span>Memory</span></td>
+          <td>Kernel pressure</td>
+          <td class="mono">warning + hold</td>
+          <td>Stress posture</td>
+        </tr>
+        <tr>
+          <td><span class="sig"><span class="dot" style="background:var(--calm)"></span>User idle</span></td>
+          <td><span class="mono">CGEventSource</span></td>
+          <td class="mono">10m (3m late)</td>
+          <td>Sleep</td>
+        </tr>
+        <tr>
+          <td><span class="sig"><span class="dot" style="background:var(--eye)"></span>Wake</span></td>
+          <td>First unlock of day</td>
+          <td class="mono">once, after 04:00</td>
+          <td>Stretch + greeting</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>Rules that keep her sane</h2>
+    <p>Four constraints. Skip these and she reads as a screensaver.</p>
+  </div>
+  <div class="rules">
+    <div class="rule">
+      <span class="k">Rule 01</span>
+      <h3>Fire on crossings, not on ticks</h3>
+      <p>React when a signal crosses a threshold, never on every poll. A pet that
+      re-announces the same 71% CPU every two seconds is noise, and noise gets quit.</p>
+    </div>
+    <div class="rule">
+      <span class="k">Rule 02</span>
+      <h3>Memory pressure needs a hold timer</h3>
+      <p>The kernel reports pressure arriving but not clearing. Without a decay timer
+      she gets stuck permanently frightened — a bug worth writing down before it's
+      lived through.</p>
+    </div>
+    <div class="rule">
+      <span class="k">Rule 03</span>
+      <h3>One reaction per 90 seconds</h3>
+      <p>A global cooldown across all interrupts. Whatever the machine is doing, she
+      comments at most once a minute and a half.</p>
+    </div>
+    <div class="rule">
+      <span class="k">Rule 04</span>
+      <h3>Everything returns to standby</h3>
+      <p>Priority when signals collide: <span class="mono">stress &gt; sleep &gt;
+      chill &gt; standby</span>. Fatness sits outside the ladder — it multiplies with
+      whatever wins.</p>
+    </div>
+  </div>
+
+  <div class="warn">
+    <h3>The cost hiding in step 03</h3>
+    <p>Because fatness applies to every state rather than being one of them, sprites
+    multiply. Four weight levels across eight states is not eight renders — it's
+    thirty-two, plus eight walk frames at each weight.</p>
+    <p>Three ways out, in order of how much they cost you: apply fatness to standby
+    poses only and let the rest stay neutral; cut to two weight levels instead of
+    four; or render live in 3D and make weight a continuous float. The third is the
+    only one that matches what the idea actually describes, and it's also the one that
+    burns CPU in an app built to watch your CPU.</p>
+    <p class="calc">8 states × 4 weights + 8 walk × 4 = 64 sprites</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>Still to build</h2>
+    <p>All front-facing, per the angle rule. The rig covers everything except one.</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>State</th><th>Beat</th><th>Needs</th><th>Blocked?</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">wake</td><td>01</td><td>Stretch pose, 4–6 frames</td><td>No</td></tr>
+        <tr><td class="mono">chonk</td><td>03</td><td>Build param, 3 extra weights</td><td>No</td></tr>
+        <tr><td class="mono">stressed</td><td>04</td><td>Hunch + tucked tail</td>
+            <td style="color:var(--busy)">Ears need bones</td></tr>
+        <tr><td class="mono">chill</td><td>05</td><td>Headphones, sunglasses</td><td>No</td></tr>
+        <tr><td class="mono">sleep</td><td>06</td><td>Curled pose, own geometry</td><td>No</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Sprites rendered from <span class="mono">cat.blend</span> · behaviour thresholds
+  adapted from the <span class="mono">lil-cleo</span> reference implementation ·
+  states not yet built are represented here by their nearest existing sprite.
+</footer>
+</div>
+
+<script>
+const S = {"front_idle": "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", "side_idle": "iVBORw0KGgoAAAANSUhEUgAAAQQAAADcCAMAAAChzC/OAAAAflBMVEUAAAC6urpER1E4OkGurKkrLDLCwsMxMzpymLU+QUu+vsCyjplZW2OSkpODnrW8lqJvcHZeYGiwk5y/wMCMorVPUlltbnTAv7/GnqukoZzAv8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACfZ/PZAAAAIHRSTlMA//////////////////////////////////8AAAAAAIZFShkAAANjSURBVHja7d2LcqowFIVhg4Q00Vqv7Tl9/wetEfECiMpFSfa/6mGYTo9Dv1k7gHXayYQQQgiJLkltQEiSXQKCuCqAAEKBYC+SWC9gpSHsvpfL/WP57TeHPZ+dsNNDVhdpFwoqU+VkCgQQQABhOITpQ7Eg7APCmxE2IEyUAqEOQUWFUDPvLRM2QnYvtd9z5YtoQvBN6CVODfi9h4LwCwJNAKHb1VNkCBsQQHjdOFiaIOrsMIoXTEAYwZoAAuNAEyJAUCD0ep3AmhAGwvbjIovFVmIT0o/rLCQ24RaCAkEWQgoCCCCAAAIInCJpAk14KYI5/nsjw9N3kYMgvLkMz99KL7bbxTnbrggmRITe364zBcEjGBAYBxAiHIe2KFEtjG1/IkUTYlsTylnP8ohG+Mrzb3YXwUTfhK8JCCDM1iA82oTqSVLiOJj8hvrMIRLhmOlxX+QpspSpEXixZCoKAi+bKwhGHkI1O+kIev/4HOygXp1WCPoQ0Qg5gTGym7AX2H9E0wT3NIKvgDbCx0HrYhyCRXDtX3IvTgpHg6Cb0AnhuBgEjtC5CVp8Ey4FhCJofUUgcxxKPZCIcHVekDoOOp4mdFsTAmqCO2yc83uu/CuGXGwIqUp98j2/TfNPp+dt9E1IH0lvL+uMuAmDLQF1C+NIERQICgQQQAABBBBAAGEUCBoEEG6Nww8IoTTBgdAvgg51HGiCGvrPnaTixuGlb6QCoe9sQKAJIIAAAggggDD8rTRNAAEE1gSaQBNoAk0AAQQQQAChw88dxhAQQLht4PJkbuPf15/RBAFNUOnkzQHhCqGpi4P0PDQEBYIYhP+Sx+F8RPcOuMWl7r3nLHbCaIJaR92Eaidq0vp67W0vmAWC8AsCTQABBBBAAAEEEEAAAQQQHntOBQIIILAmgMA4gAACCCCAAAIIIIAAAgggyLiLbP1ekuCaMG/ILvFp8Zyrw39fFZvVfOUfK7+dt3zOQWMv/5SmnVr/OKXlASd3MzKEIQ44PAQLAgggnBAsCDSBs8PVODQMBWuCpDXBih+H8xWyZISksQxS1gQP4T9qJaQ0wTadHsSsCUnDRMhZGEEoThD1FEIWxhNCsTZYqdcJ9tbaKGwc8iqU50HWOOQKVnYTisXRCkcorhqswHGQfitNCCGERJ4/jLyqr9daOIoAAAAASUVORK5CYII=", "sit": "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", "walk1": "iVBORw0KGgoAAAANSUhEUgAAAQQAAADcCAMAAAChzC/OAAAAflBMVEUAAAC6uro5O0JER1GurKkrLDLCwsNymLU+QUsyMzq+vsCyjZlZW2OSkpODnrW8lqJvcHZeYGhoaW2wk5y/wMCMorVPUlnAv8DGnqvAwL+koZzAv78AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwRSQ6AAAAIHRSTlMA////////////////////////////////////AAAAAEwhjZUAAAQCSURBVHja7d0NV9owGIZhkn4YqkNRQd3+//8caS2fpdCStEne+5nr4WyTg9eeNw09nVssCCGEkOSSdQaELNtmIIirAgggtAjmKJmxAkYawvb97W338fZuD/Ujm62w00PZFWkbBVWq85QKBBBAAGFqBK01CFqHwzAvQiAO6nMeBH1IAAhqdoT5GVRXJjbw6tAx7yPj/IxwbmC8MewQylvp/Jov/pDrtVB3RkQTdH+MFwdXCNU0CH6mwhXCl5rIwMdUBNaEexHc1iFSBLcMrhDKqRFcMrhC+FRTGzh0iBtB60wnNw7DEUxyTdAjktzZYUQRQHC1awppTZirCJEjONoohDQOV7/OWBBKnwjXfssEhuDgekL/37XPN5MB7RNuFt5XEUJaE+6Y+ubSkvOrCoMRNk9HWa02zppw38qnQ0DIn06zctaEu5d/95eXXCGo6RD2U5EewrB9gMtlcTBCHgiC/YQFCDNebQbBJ8KcBiCAENYp8nQ7PPWNGUE3YSGrCd0OIASMoKZECHSfsHsrvdpsVodsRCJMe3kNBIEIEW2WQADBN0qCCCUINOE3H89NRCO8Nvl+Dt7AfxNeFyCA8PwBwrAmLEGwCJah/VkfpSHsCJaWYWmj6wfT/QO4UE6Rv1/+cVJAGLZZOkFopmGZAMKw13FagmKXZSEbYfteRzJCUfwpVfnzoxLICIPdCBS/CIlkDEKzFkhFKPY9sBKpIFSDm1CXoJYQ3ISizTJahAdv5jwyiLoJjyE0K2LkCI81oTgpgtAmgJAOAuPwMMKpgdBxAOFiGoJGqOpDVdlH1fm3GKpSQ8hVbtM8sse8+eX8cEy+CfntqNzllZ2iCLIJnnfJMSAoECZHOF8SQABBMgJrAgggXFsSQABBMAJrQifCP3EIy1jHoeIU6RjhgiKScah8fS/3mJrg97v656XsJni+kQqEuMaBJoAAAggggABCzAgKBJoAAgisCTSBJtAEmgACCCCAEAJCHkJAAOG6QdWkrD7tff0lTRDQBLe38YPwMEJfF730PDYEBYIYhL+Sx+Hwim694BFb3VvP2T6IownqI+kmXHbC5X0is10wiwThCwSaAAIIIIAAAggggAACCCDc95wKBBBAYE0AgXEAAQQQQAABBBBAAAEEEECQ8S5y9L0k0TXhpSfbzGbEc67rT1+3h/XL2n6s7fFl5HN6jTn+PzSNNvZjn5EvOLuZwBB8vOD4EAwIIICwRzAg0ATODifj0DMUrAmS1gQjfhwOO2TJCFlvGaSsCRbC/uiUkNIE03d6ELMmZD0TIWdhBKE9QXRTCFkY9wjt2mCk7hPMtbVR2Dg0VTifB1nj0CgY2U1oF0cjHKHdNRiB4yD9rTQhhBCSeP4DJQunySMeM1YAAAAASUVORK5CYII=", "walk2": "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", "walk3": "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", "walk4": "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", "walk5": "iVBORw0KGgoAAAANSUhEUgAAAQQAAADcCAMAAAChzC/OAAAAflBMVEUAAAC6urpER1E3OUGurKkrLDIyMzrDw8NymLU+QUu+vsCyjplZW2ODnrW8lqJvcHZeYGiwkpy/wMCMorWSkpNtbnRPUVmkoZzAv8DAv7/GnqsdHyQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/aDjWAAAAIHRSTlMA////////////////////////////////////AAAAAEwhjZUAAAReSURBVHja7d2LcpswEAVQhJCISJz4kThp+///WQuCXwgwWIKV9t56HHem9ThnrhZhM0mWIQiCIEhyyZ0BQp4fcyCwq8LSCNJI5giyDkUEc5XcWAETBkG2IYdw/Pr4ON0+vuxd/cjmGE6AZBVKV0ISUEQQpbhPKUISUFQIjSAdYYYg3eGEICV3BDkUHghSskeQMjKEvW8E+UiIIQi/CFKmgSBEaIIlFRzrfWa8GyyKUI7F+T13/hGaMGF9SHojwRdCNQFBUxuKvhB+hMfJSGAjFLgJtwiawpFxBYSs57tfb3PgC6GchKBp7Y98IewfR9DkdohLI5DcJC+6HGTvNCB3mhysCe4K6PXPlJY8OriHgc5YIWRUT5lXmAnMEXTiCI/tGIlWYdkdo04bQTzYBJ0ywoM7RprrYeGzyEQQDi9X2WwOU5ugE0AoXm6zmdqElBHEU2eRQIgOoXgeQQOBZBWAAISVECgqAGGFQySa8KugY3/L3QeCBALB/dLks8hQCDJbD2L6qfTmcNhccphxJRe5j+KWv1zHvtOo60+e9H0l+CEk+NH8pAsbLYLmjnCqgmaPQO0Ten8IU1CaI2LyCOOfSBG5cm29JvSeQ6SGsHttMoCgiVywEQ7hvcnf1wnbBZ1oE94HDpTdC7nSQ9gNI8juvjnJmbAbbkJ348hwOdh9Y7131Otezbcigj086MahOVDYO64IV0kOYfQQmekugk6zCa8jJ5N34bZtBgIQ+odCoxDuRS0dIExDUBcDxboJKsEmVDMRFPuZoJSKugnVrB+o0DFQdRXibcKzCCp+hGeb0BCwboJqDU5hiqB+50H0CE8vByAopfguh+xmKJ4VWCKoiBCq+q6q7KPq/kcMVTMRlCKKUIjCxl67eXpcfxHnL79/8dcERRKheCR+3tPpDARSTQgzAuJCEAshZB0CqxDN0QEIQPCKoBwKWcmtCUBAE3qHAhBO+ccOwXF0UAIIShVA4IjgGAqff5ghuCbjZxxNqIDgFUFFuxwCI8TRhDIkQlbwWw63H7xE9NG89+Ww0NVkXrP3/MuwshgRKiAAAQhAAAIQgBD4VBpNAAIQMBPQBDQBTUATgAAEIAABCPNTUAgQgNBvUDUpq729rr9EExg0QRTZygHCDcJQF4P0PDYEAQQ2CN+cl8PlFY294Blb3bHnbB/E0QSxS7oJ3U44Mnu/ttobZpEg/AABTQACEIAABCAAAQhAAAIQgPDYcwogAAEImAlAwHIAAhCAAAQgAAEIQAACEIAABB5nkbOvJYmuCW8DOeY2M55zW//3bXu3fdva29bev818zqAx179W1Ehjb+fMfMH5aIghhHjB8SEYIAABCGcEAwQ0AUeHm+UwsCgwEzjNBMN+OVx2yJwR8sEycJkJFsL+cUpwaYIZOjywmQn5wIrgMxiB0B4g3BRMBuMZoZ0Nhus+wfTNRmbLoanC/XrgtRwaBcO7Ce1wNMwR2l2DYbgcuJ9KIwiCIEji+Q/+XKstPBY+FQAAAABJRU5ErkJggg==", "walk6": "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", "walk7": "iVBORw0KGgoAAAANSUhEUgAAAQQAAADcCAMAAAChzC/OAAAAflBMVEUAAAC6uro4O0Osq6lGSVMxNDuXlpc+QUsrLDLCwsNymLWyjpm+v8BOUVqInrFxc3doanCIiIu6lqJZW2Kwk5y/wMCOobLAvr6joZ58fIDGnqtfYWjAv8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALEjOSAAAAIHRSTlMA/////////////////////////////////////wAAAJIki2QAAAevSURBVHja7Z2JlqMoFEDZFNMVs9TeM/P/3zmKqKAiSBRQ3ztJKt3HxHhz32PRKhCCgICAgIA4XLDJAAiMlQwgnE6F6BAI4eTUEIiM+BC4EozXBHgICESJ2BDKx/1e3e6P+kE8q6MMSCAFCpepCAkgBQj4godxwSEBnAsCMcc5IBBLHB8CscexIRC3ODQETnZBYVsIZCcQvgACwhggTEHA4QvjhhQm8t0z9g3hYovJYx5ttDUEfmgT4ncU1oJw9YeQRa+Ka0H4D++4WYhoQjrtYtIQInaJveKyNoTI4wKv+FoTQgKDo1AQUDK944jpgJIZISRnwp4hXAECQICaABAgHcCEVeYToJ8ANWHv3ebvP0rcbt8vmJDtFQL9o8ftlem1o0HAAOFcEChAAAgAASBsBiEDCNBEQjqACQkOHiKnQyZuRKOB0j8DtSYE1EKILMPyofTt+/vWx/drENI4GRn3cp06E7KzQzBVx9NBIAABIPTt5FEg+EI5lAm+Z6TABNE6HBjC51sTp2oih/HexD9vZ4YgTXiHdAAIb2+fAMHVhDGFM6ZDcxOTC4JHdkoIMoh8fsYmMhvE8Ux4Q4shZMeBsKDbDBDGCLLy7BCK6pZv9qFChxeEQsSJIRQSQXFyE4oGxVEgXBdDKCSB7MwmFG067Lcw+v+udJ8Ixf5rwqsQiv1DeN0EBcM5TdA8OCcErR6cNx2Ks0MojgMBvwChKE4PIdsXhKt4uF7rZ9fhnxi6Hg0CxbQOjJtHLB7aH/IfRzeBusRq0zrpmrBdCdhNYQQIGzcGAAEgAASAABAAgguEAiCACWACQJhPhx+AsBcTrgBhXQjFXtMBTMBbrv5TBz1dOgS9kAogrB1fAAFMAAgAASAABIAAELYfSoMJAAEgQE0AE8AEMAFMAAgAASAABIDwwnmHWKFezJsQBMeLjNdBgNOEIHYVDIG2r8nuUROX61d9Xf8lJIQQHMY7SsWEX2V/IQgo+8EURY7pbyMEgvQg/A7t2x5BgiZMZOHGCLo9pALhd7o2bUogPQimmrwlgvbt40OQnwVjK4al/VyXF8rfd0vChF/Hw1nVAuWtURJh+VI/8zoWvqd4DY04abYuA5x7QHg6QMCX/UCgzfHkS0WoOVggpKOCbU4hzz1UkK+hEYcE64tQHc/ybNiPCq4iLFKhe81OVHAUYZEKPbidqOAswoLSqEDYhQpu7eOyfFBfk++hlbRmw00ezC2nt/UhJKGCdQiQtx3gm3MHV2Pw3EGHCS8bNyyHsIPSaGsfV4DwTL40LhSBeoiQvApLRXCiMIKQuAoYrw8hz/elwnIRHChMQEhaheUi2CHkdAzhN2UVPBhYZwTzfHE+RFXBRwSbClMiJD3D5AXBokKee6gQMR/8RLCoQKchJFsaPSFgDxGSVQH7mlCrYFoyh5ogOKjAGAsP4Qd7FoV7Zlo36El9VfhmrGShV5tA7ONJPShg+vxgvGLApyiQj2fuUxXo/aNkNYbAEKoDKe90IQVM/5YzS0jVfxO5vC9uJfMHayO0CYwRwh65OwZM8zvrl9HiUxBqDGwag2kHzx5BaBU445xVXlsxKAgefH41sW7RAPZ40ncnFerk0iKwCBWGeq+E24pDWwqs68opS6nUxcGuAr2XOoKwKtQEOBcUKsPLv3T+IoLbvRwvNTkqjfpKIuVfiwpKKYijAmvSQcYwKy56L0IrBWYVhosLFVVx0M5a6KXg3ykEIVVgtQbSBgFjgEGFUH1hhnXqByqMltoqCv7I6a07adFPX4xKQSwIdUkQx9/a0BUH0YntvjBOzDEjguRAHs/+zI2xFKgUQjYNwoQGgCyRrOs5tL1q+qxKATdT0FTIpinIngPtZrKmS0F4FThrGXCulAaZFT8/YqMfehcI5kxQIBCSGaLpOcjxynMeQcDS2IrAZAuhZQV7PMRGdSkQG8ww4C4QRI1sLDeWgvAqyGxoU6Ivj02Q6j/qo2JyszkIpGcwA6FZdUn2U1kaKjCFAJMPw+BtEzKbDb0KFggNCTcIQVToRZAtZcOAD78OJwhEgTCPoRCLU6aiAh8EY804gg8/h51BVxrF02wlCAFUUCtCVyB1BFxCYMQKQapAHChkKJ2qMADA+wZCgdAVD0JcVGifrwShDC5C30aw3oiWl52BUMEJAnKHwOJCUEWoPjEhLir0z+0QksiHKQZdgWxBKA2fXQVHCAglowIxQWB9s6lA4A7pQNStTAiUZbwdGGwMwShCN8fCVRkdEAw2solgh1BunQ2cmdNBDiWaTrOLCpzLtkEzgWSZZRXvuAia75YZs0GOpPTNZxD0G/GBC2QAgjhDCDSIJDM6MF0EMwSuz6hoCNqcUH8Mp/ujSaD0l2aygg3NsSPQN2wOXMsK4gChDH8qknNmKpA2CJwbzsYqlZEMfEAOJsQ4K80nBhFjEcT5OpsEGoasuWfy3gwvkZVCrAsUprKCcaPmVgQdhsaAvrkkyAIBxQwVQzuWmoFgRdDMuMqWsmsxRyIMKKDoMcSAjBXPDYGCoS2UBM1BQEmErsNUk7qIwDiHMmSmgJKJHgObPqKFCPq5puZugoDSirbPbIBAvN7UfDWHoIASDD7sMa/SRye+BONh4BsMVfbFAAICAuKg8T8w9udf+ri0qAAAAABJRU5ErkJggg==", "walk8": "iVBORw0KGgoAAAANSUhEUgAAAQQAAADcCAMAAAChzC/OAAAAflBMVEUAAAC6uro5O0Osq6lFSFIxMzs+QUsrLDKXlpfDw8Nyl7Wyjpm+vsBQUluWprRnaG21l6GHiIt1dXqLnq7Avr61kp1ZW2O+wMCjoZx7fIFfYWjQ0NDAwL8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABrdJ9LAAAAIHRSTlMA/////////////////////////////////////wAAAJIki2QAAAdUSURBVHja7d2LdqQoEAZgQaB1o7Ev6XSS3fd/zgVv7QUVvFFo1ZnJzuwknfY79QOiMwYBFhYWFhYWFtZxi3ULEU4qgQiIgAhdBJHXWRFCEoZRdJP1e79n2d93mqanQ4ibRfIKSXQyBFIeeV1JEsfB2RFkbYZAy0KEVsFFIPshwPCAgaDmZ4cccDqh9mAQEGKnCE46IdkPgbpAIP/WC6DBTteE4WAIpUASx5qF4WCtjVAfmlMETSXjIE4aYHeE8Vbo+MTJnggCBkK/XU6MsNIg4RhhpVoWB9sRQQQwEQgi7IxAgSK8PEaIsRMQYV2E9Q3afyLOi6D7HCHYaRBGPx3kgnFXhF12zhBhbiHCMgR6EIQEERaulVxvJyPCbISvL/lD1UkRHo/PssLTdkL4T7s+EWEdBOfX2WxHg09EIOFuCAFYhPCYCPFChBARTolAwkcHYYUzaepdJwwhvJYh8EMgJD5PDmshLNxT4V4tGDdB0LcD4POnbRCoTwjdU4fHGRHI5wMRqvFRrpqKOi/C+veyIcJREBJEWH6Dq1uEBCwC3N21jYYFt+vm9QTUTa3JXBB+EIRFF+rdnkfGGyEktp1wRAQSIoJEuF6vz+fH8+PEcSDXj7yuH+adID9w/t5qOx2CPHpZ8vB5+Qv5w8NThzUQmuXlHUuLEHgbIY/EERCeJcJzBgK/yDoSglkntCvNZB0iDvkU+bRGUE0QxST+jxygyk54BlYIlwsvEI5QlnssBUDeBerjyRHqOByhXvYIeQ8UzXAQBMuNJl62QJmHUyLwFsJJ41AEgR8AIclrVie8RwOvEfKDnr3n2hLwHGF2IYJCuBwDYdEZDEcERECEgXHRV4TX4RDCKCxq4kRx9rrAC4RWPVq/a4egruSocVBHHGqqUOlc0l1zmeDHmCB5wmC9uni7WEKEdRE4IiCCdnJABERAhHMj4BSJCEMIX4hwxk7giKDdbfYjDsk2/4i5X52w3b/pryqMz9wJm99JhQh+xQE7AREQAREQAREQwWcEggjYCYiACDgmYCcgAiLgmIAIiIAIiAABIYRQiAAKQX9P7YYHPo5Q/GW3JE5e6lbmeDcEspcD6XwvSJ1AdnEg3W+06n3LixB+mur7pB84wjYQZOBbwEHQ5XLrCQAaws/A4LTpFAgOYWRc3m4RAAWhejfj85PhNGb7VdW8DKMTfqYRtlgLVp8VwKiJNxtFkf1ryi+Kxm8/CWDVOMJ1NkLo7h4c+xq/m1EdTbQ+AoGFML6roNIQzUOIfEIg6yPkX+RTHshUGmbkwTcEkzTMRPAnDyZpsM1DZIIAqRUM0mDdChWCL3mY2HGujuY6C8GXPJgumWcZ+LJo3BbBkzzEpidP6yOAyYP5CeQcA0/ysDWCF3n4MkWw2P0wRgCSB/Jlvp8yC8GHSdJmT2mWgQ95sEAwzoMFwgsCAoktOmEeAvw82O2wGhqEFgixbwiGeeg0AvhBwS4NWyAAyAOxi0M4Jw3g82BpQOY0Avg8xHYKRnmwRHCeB5PridZ5CPsKfiOQ7rXF4mladkOCwU4jY8wZwj0KzRXkL293RsUEQnq/9RxGL9DfMpamLHVlII8nzW6hIYN8s+Vj1MTYi14unGU3w1Z43LKU5ZW6agXB1GHJt/yYcoh+v9n7WXJipBWKJ+pwlt6jRkPoX/T+zRrlCKH45rIf2Pc9GhG4p8L4kXrvJwtRFYyhPMi+agkwV3kQTKgqHESa6aKrBFjvsYJiCoFXDZGVA0RXIGXdcpQHiaAAyjdRBCPsvlnlI3oIdNqgetASy+7RtfGy0e8f05ebNIgCQFQQKhh/v9F71FbHy/oGI3noPX5PNYQcIELtMOAeQR17GYd3lQOEnA+ZAmD5Z1DzPPQISocs1ofAdR5KhDIRDQt19Pes7JIBBGraCKUF/c3YZLkaF6ufmoaoCSzywIcVGEiEvBGqDwMlBjrBGoEbIDjIQ37oRQsI1s5DV4Ea54HqmqD4D1QEUa8TBGNCDDWCthO0CJwOt4KAmIfqCMvVgrBLwwACX5YHN43wXjNaDgn6SZKOKQDMQ50GUc8RrNcRYwjULg0mCLvnoWnQQDAdEbR54HxhHpjDRqgHSCbcIuychx5CY65oMwwZ9PMwngaAeej3gahPp0zmBl0rTCGAmyT7aSjWCqI4pxSzELhfedCngXXWTOMG3TxMNQK4PIiBYo1ETDUCtUYAlgc2qiAM5gb1J8NpoPPykO6JIAYRRGPZNLZS0syQ8v9NIHBgkwMVjImhWbJcSA+eQOpPHOSBlw50FoKT3TWhcXhvMMhuoUK3xTp6/al20ElQHoASqCHefc+aU6V6V/1OEBMXn8qGqBx6CEEATqDn0Dy5FnmrmLdAZ56gdTCapUUIYBRtB6NYMqnRc5ZAPxjvNHQVAljVDIZCyOdRk8tu08GgZUN0EQKIVTsUacgvWs8GeK8d3g0RNBACuFU5FAhULBNoOOQ/K4QAfBWrxrVHnbwfAq9KiPVfk3tmgIWFdaD6H2sc3mL3MMc1AAAAAElFTkSuQmCC"};
+const px = n => "data:image/png;base64," + S[n];
+
+// Beats 01–07 stand in with the nearest sprite that exists; the five unbuilt states
+// are listed honestly in the last table rather than faked with a lookalike caption.
+const beats = {
+  "s-wake":"sit", "s-sit":"sit", "s-chonk":"side_idle", "s-stress":"front_idle",
+  "s-chill":"sit", "s-sleep":"sit", "s-night":"sit",
+  "c-side":"side_idle", "c-front":"front_idle", "c-sit":"sit"
+};
+for (const [id, name] of Object.entries(beats)) {
+  const el = document.getElementById(id);
+  if (el) el.src = px(name);
+}
+
+// Walk cycle: the real eight frames at 12fps, same rate the app will play them.
+const frames = ["walk1","walk2","walk3","walk4","walk5","walk6","walk7","walk8"].map(px);
+const img = document.getElementById("walk");
+const btn = document.getElementById("toggle");
+let i = 0, timer = null;
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Decode every frame before the first swap, or the cycle stutters on its first pass.
+frames.forEach(src => { const p = new Image(); p.src = src; });
+img.src = frames[0];
+
+function play(){ timer = setInterval(() => {
+  i = (i + 1) % frames.length; img.src = frames[i];
+}, 1000/12); btn.textContent = "pause"; }
+function stop(){ clearInterval(timer); timer = null; btn.textContent = "play"; }
+
+btn.addEventListener("click", () => timer ? stop() : play());
+if (reduced) { btn.textContent = "play"; } else { play(); }
+</script>

@@ -1,0 +1,345 @@
+<title>Deskitty — coats</title>
+<style>
+:root{
+  --ink:#16161C; --card:#1F1F27; --line:#33333F; --plate:#2A2A33;
+  --tx:#EFEFF3; --tx-2:#9A9AA8; --faint:#6B6B79; --accent:#E8944A;
+  --bg:var(--ink);
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:light){
+  :root{--bg:#EDEDF1;--card:#FFF;--tx:#16161C;--tx-2:#585866;
+        --line:#DCDCE3;--faint:#8A8A98;--accent:#B4671F;}
+}
+:root[data-theme="dark"]{--bg:#16161C;--card:#1F1F27;--tx:#EFEFF3;--tx-2:#9A9AA8;
+  --line:#33333F;--faint:#6B6B79;--accent:#E8944A;}
+:root[data-theme="light"]{--bg:#EDEDF1;--card:#FFF;--tx:#16161C;--tx-2:#585866;
+  --line:#DCDCE3;--faint:#8A8A98;--accent:#B4671F;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);
+     font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1160px;margin:0 auto;padding:54px 26px 90px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:clamp(30px,4.8vw,46px);font-weight:800;letter-spacing:-.03em;line-height:1.04}
+h2{font-size:21px;font-weight:750;letter-spacing:-.016em}
+h3{font-size:14.5px;font-weight:700}
+p{margin:0}
+.mono{font-family:var(--mono)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.15em;
+         text-transform:uppercase;color:var(--accent);font-weight:600}
+.lede{color:var(--tx-2);font-size:17.5px;max-width:64ch;margin-top:15px}
+header{border-bottom:1px solid var(--line);padding-bottom:28px}
+section{margin-top:52px}
+.shead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+       border-bottom:1px solid var(--line);padding-bottom:11px;margin-bottom:22px}
+.shead p{color:var(--tx-2);font-size:14px}
+
+.pick{display:grid;grid-template-columns:1fr 288px;gap:24px;align-items:start}
+.stage{background:var(--plate);border:1px solid var(--line);border-radius:14px;padding:24px;
+       display:grid;grid-template-columns:1.3fr 1fr;gap:14px;align-items:end}
+.stage figure{margin:0;display:flex;flex-direction:column;gap:9px;align-items:center}
+.stage img{width:100%;height:auto;image-rendering:pixelated;display:block}
+.stage figcaption{font-family:var(--mono);font-size:10px;letter-spacing:.11em;
+                  text-transform:uppercase;color:#7d7d8b}
+.rail{display:flex;flex-direction:column;gap:18px}
+.grp{display:flex;flex-direction:column;gap:7px}
+.glabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+        color:var(--faint);font-weight:600}
+.opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;
+     font-size:13.5px;padding:9px 11px;background:transparent;color:var(--tx);
+     border:1px solid var(--line);border-radius:9px;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt[aria-pressed="true"]{border-color:var(--accent);
+     background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;border-radius:5px;overflow:hidden;flex:none;
+       border:1px solid rgba(255,255,255,.15)}
+.chips i{width:14px;height:20px;display:block}
+.opt b{font-weight:650}
+.opt em{font-style:normal;margin-left:auto;font-family:var(--mono);font-size:10px;
+        color:var(--faint)}
+.why{background:var(--card);border:1px solid var(--line);border-radius:12px;
+     padding:15px 17px;margin-top:13px}
+.why h3{font-size:14px;margin-bottom:6px}
+.why p{font-size:13.5px;color:var(--tx-2)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:12px}
+.cell{background:var(--plate);border:1px solid transparent;border-radius:11px;padding:10px;
+      cursor:pointer}
+.cell img{width:100%;height:auto;image-rendering:pixelated;display:block}
+.cell span{display:block;font-family:var(--mono);font-size:9.5px;color:#83838f;
+           margin-top:6px;letter-spacing:.04em}
+.cell[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:15px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 17px}
+.note .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+         display:block;margin-bottom:8px}
+.note p{font-size:13.5px;color:var(--tx-2)}
+.k-good{color:#7FB069} .k-warn{color:#E8B54A} .k-bad{color:#D9695F} .k-info{color:var(--accent)}
+footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--line);
+       color:var(--faint);font-size:13px}
+@media (max-width:880px){.pick{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Deskitty · coats</p>
+  <h1>Cats aren't one colour. They're a pattern.</h1>
+  <p class="lede">Every option before this gave her a single body colour with dark points,
+  which is why they all felt a bit flat. Orange-and-white bicolours, vans, tuxedos and
+  calicos are <em>patterns</em> — the same coat split across the body a particular way.
+  Splitting colour into pattern and colourway means the combinations multiply instead of
+  adding: 6 patterns × 12 colourways — 72 coats. Her eyes are locked to one gold across every coat - a drifting eye colour is what turns one cat in twelve coats into twelve different cats. Every colourway is measured, not eyeballed: nine of the previous thirteen failed a contrast check and were replaced.</p>
+</header>
+
+<section>
+  <div class="pick">
+    <div>
+      <div class="stage">
+        <figure><img id="v-side" alt="Selected coat, side"><figcaption>side_idle</figcaption></figure>
+        <figure><img id="v-front" alt="Selected coat, front"><figcaption>front_idle</figcaption></figure>
+      </div>
+      <div class="why"><h3 id="v-title"></h3><p id="v-note"></p></div>
+    </div>
+    <div class="rail">
+      <div class="grp"><span class="glabel">Pattern</span><div id="pats" class="grp"></div></div>
+      <div class="grp"><span class="glabel">Colourway</span><div id="cws" class="grp"></div></div>
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <div class="shead">
+    <h2>Her face</h2>
+    <p>Three independent choices that compose: <b>eyes</b>, <b>muzzle set</b> (patch, nose, mouth) and the coat underneath. Inner ear belongs to the ears and no longer moves with the face.</p>
+  </div>
+  <div class="pick">
+    <div>
+      <div class="stage" style="grid-template-columns:1fr">
+        <figure><img id="f-img" alt="Selected face"><figcaption>front · head</figcaption></figure>
+      </div>
+      <div class="why"><h3 id="f-title"></h3><p id="f-note"></p></div>
+    </div>
+    <div class="rail">
+      <div class="grp"><span class="glabel">Eyes</span><div id="eyesel" class="grp"></div></div>
+      <div class="grp"><span class="glabel">Muzzle set — patch · nose · mouth</span><div id="faces" class="grp"></div></div>
+      <div class="grp"><span class="glabel">On coat</span><div id="fcoats" class="grp"></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <h2>What the patterns are doing</h2>
+    <p>Three slots, assigned by job rather than by hue.</p>
+  </div>
+  <div class="notes">
+    <div class="note">
+      <span class="k k-good">The ask</span>
+      <h3>Bicolour</h3>
+      <p>Orange back, head and tail; white belly, chest and legs; black socks. Exactly the
+      combination you described, and the most convincing cat in the set — because the pale
+      underside is where a real cat is genuinely lighter.</p>
+    </div>
+    <div class="note">
+      <span class="k k-info">Why B is always pale</span>
+      <h3>Counter-shading is real</h3>
+      <p>Slot B lands on belly, chest and muzzle in every pattern. That isn't a style
+      choice — nearly every cat is lighter underneath, and the eye reads its absence as
+      wrong long before it can say why.</p>
+    </div>
+    <div class="note">
+      <span class="k k-good">Most character</span>
+      <h3>Van and calico</h3>
+      <p>Mostly white with colour only at the head and tail. Both give her the strongest
+      face, because the coloured head frames the eyes instead of competing with them.
+      Calico adds a dark tail for a genuine three-way split.</p>
+    </div>
+    <div class="note">
+      <span class="k k-bad">Broken</span>
+      <h3>Tabby stripes</h3>
+      <p>The bands sit on top of the back, which is edge-on in profile, so they barely
+      register in the view that matters most. They need to wrap down the sides to read.
+      Currently the tabby is really just a dark-tailed solid.</p>
+    </div>
+    <div class="note">
+      <span class="k k-warn">Watch</span>
+      <h3>Tuxedo's white socks</h3>
+      <p>Inverting the socks to white removes the dark anchors at the bottom of the frame.
+      Fine on an orange body, risky on any pale colourway — the same washing-out problem
+      white had.</p>
+    </div>
+    <div class="note">
+      <span class="k k-info">Endless, cheaply</span>
+      <h3>The system, not the swatch</h3>
+      <p>Patterns are part-groups mapped to slots; colourways are five hex values. Neither
+      knows about the other, so new coats cost a line each rather than a rebuild.</p>
+    </div>
+    <div class="note">
+      <span class="k k-info">The pastels</span>
+      <h3>Sakura, mint, butter, lilac, sky</h3>
+      <p>Deliberately not colours a cat comes in. They only work because slot C stays a
+      hard near-black — drop the dark socks and ear tips and every one of them dissolves
+      into a soft blob at sprite size. The accent is what keeps a pastel from reading as
+      a toy.</p>
+    </div>
+    <div class="note">
+      <span class="k k-info">Measured, not eyeballed</span>
+      <h3>Three rules, in CIE L*</h3>
+      <p>Coat-to-underside value gap ≥ 25; accent darker than L*22; eye at least 15 from
+      the coat. Nine of the first thirteen colourways failed — old ginger scored
+      <em>1.7</em> on the eye rule, a green eye and orange fur at identical value. Pixel-art
+      guidance is unanimous that value beats hue, and the grayscale test proves it.</p>
+    </div>
+    <div class="note">
+      <span class="k k-good">The missing family</span>
+      <h3>Dark coats</h3>
+      <p>Midnight, cocoa and forest. Nothing before this had a dark body, so every option
+      sat in one narrow value band — these have the widest separation in the set, and
+      midnight is the most legible cat built so far.</p>
+    </div>
+    <div class="note">
+      <span class="k k-warn">Retired</span>
+      <h3>Sand, silver and the pastels</h3>
+      <p>Both put a pale slot A against an even paler slot B, so the pattern itself
+      almost disappears — you lose the thing that made bicolour work. Lovely up close,
+      indistinct at 40px.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2>All 72</h2><p>Click any to load it above.</p></div>
+  <div class="grid" id="all"></div>
+</section>
+
+<footer>
+  Rendered by <span class="mono">blender/explore_pattern.py</span> · flat voxel lighting ·
+  geometry identical throughout · nothing committed to
+  <span class="mono">build_cat.py</span> yet.
+</footer>
+</div>
+
+<script>
+const S = __PATTERN__;
+const px = k => "data:image/png;base64," + S[k];
+
+const PATS = [
+  ["bicolour","Bicolour","orange top, pale under, dark socks",
+   "Colour on the back, head and tail; pale belly, chest and legs; dark socks. The most convincing cat here — the pale underside is doing the work, because that is where a real cat genuinely is lighter."],
+  ["van","Van","colour only at head and tail",
+   "Almost entirely pale, with colour restricted to the head and tail. Gives her the strongest face of the six: a coloured head frames the eyes rather than competing with them."],
+  ["calico","Calico","three-way split",
+   "Pale body, coloured head, dark tail and socks. The only true three-colour coat, and the most distinctive silhouette at small size."],
+  ["tuxedo","Tuxedo","pale bib and pale socks",
+   "Coloured body with a pale bib and pale socks. Charming, but inverting the socks removes the dark anchors at the base of the frame — safe on a saturated body, risky on a pale one."],
+  ["solid","Solid","one coat, dark socks",
+   "The current build, for comparison: one body colour, pale underside, dark socks and ear tips. Clean, and now clearly the least characterful of the six."],
+  ["tabby","Tabby","banded — not working yet",
+   "Bands across the back plus a dark tail. The bands sit on the top face, which is edge-on in profile, so they barely register in the view that matters. Needs to wrap down the sides."]
+];
+const CWS = [["ginger", "Ginger", ["#E8944A", "#F6F1E7", "#2B2B33"], "gap 27"], ["marmalade", "Marmalade", ["#D2733A", "#EFE7D8", "#241E1E"], "gap 34"], ["russet", "Russet", ["#B5512F", "#F0E4D4", "#2A1E1C"], "gap 44"], ["chocolate", "Chocolate", ["#8B6248", "#E8DCC8", "#2A211C"], "gap 43"], ["smoke", "Smoke", ["#8E97A3", "#F0F0F2", "#22262C"], "gap 33"], ["midnight", "Midnight", ["#2E3138", "#C6CDD6", "#14161A"], "gap 62"], ["cocoa", "Cocoa", ["#4A3A32", "#E4D6C0", "#1E1814"], "gap 60"], ["forest", "Forest", ["#34453B", "#DDE6DC", "#171F1A"], "gap 63"], ["rustsky", "Rust + sky", ["#B5512F", "#C9D6DF", "#1E1A1C"], "hue-shift"], ["honey", "Honey", ["#B57A22", "#CBD6DE", "#23262B"], "hue-shift"], ["berry", "Berry", ["#5A6BA8", "#DCE0EE", "#1C1E2E"], "gap 43"], ["rose", "Rose", ["#C4506A", "#F7E6E4", "#2A1A20"], "gap 42"]];
+
+let pat = "bicolour", cw = "ginger";
+function render(){
+  document.getElementById("v-side").src  = px(`${pat}__${cw}__side`);
+  document.getElementById("v-front").src = px(`${pat}__${cw}__front`);
+  const p = PATS.find(x => x[0] === pat), c = CWS.find(x => x[0] === cw);
+  document.getElementById("v-title").textContent = `${p[1]} · ${c[1].toLowerCase()}`;
+  document.getElementById("v-note").textContent = p[3];
+  document.querySelectorAll("#pats .opt").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.k === pat)));
+  document.querySelectorAll("#cws .opt").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.k === cw)));
+  document.querySelectorAll("#all .cell").forEach(el =>
+    el.setAttribute("aria-pressed", String(el.dataset.p === pat && el.dataset.c === cw)));
+}
+
+const pw = document.getElementById("pats");
+for (const [k, name, hint] of PATS){
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "opt"; b.dataset.k = k;
+  b.innerHTML = `<b>${name}</b><em>${hint}</em>`;
+  b.onclick = () => { pat = k; render(); };
+  pw.appendChild(b);
+}
+const cwEl = document.getElementById("cws");
+for (const [k, name, chips, fam] of CWS){
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "opt"; b.dataset.k = k;
+  b.innerHTML = `<span class="chips">${chips.map(c => `<i style="background:${c}"></i>`).join("")}</span><b>${name}</b><em>${CWS.find(x=>x[0]===k)[3]}</em>`;
+  b.onclick = () => { cw = k; render(); };
+  cwEl.appendChild(b);
+}
+const all = document.getElementById("all");
+for (const [pk, pn] of PATS) for (const [ck, cn] of CWS){
+  const el = document.createElement("button");
+  el.type = "button"; el.className = "cell"; el.dataset.p = pk; el.dataset.c = ck;
+  const i = new Image(); i.src = px(`${pk}__${ck}__side`); i.alt = `${pn}, ${cn}`;
+  const s = document.createElement("span"); s.textContent = `${pn.toLowerCase()} · ${cn.toLowerCase()}`;
+  el.append(i, s);
+  el.onclick = () => { pat = pk; cw = ck; render();
+    document.querySelector(".pick").scrollIntoView({behavior:"smooth", block:"center"}); };
+  all.appendChild(el);
+}
+render();
+
+const FACES = [
+ ["white_and_black","White + black",["#FBF8F4","#1E1A1C"],
+  "Near-white patch, true-black nose and mouth. The highest contrast available on the lower face, and it borrows nothing from the coat, so it works on every colourway."],
+ ["cream_and_charcoal","Cream + charcoal",["#F0E4D4","#33292C"],
+  "Softer patch, near-black nose. The most common nose on real tabbies and gingers."],
+ ["cream_and_brick","Cream + brick",["#F0E4D4","#B5563F"],
+  "The naturalistic choice for a ginger - real orange cats have brick or salmon noses, not pink."],
+ ["warm_peach","Warm peach",["#F2C9A8","#C96B78"],
+  "Tints the patch instead of leaving it neutral, so the face reads as part of the coat rather than a white sticker on it."],
+ ["gold_muzzle","Gold muzzle",["#E8CFA0","#C97A80"],
+  "Same idea pushed warmer. Best on the dark coats, where a neutral patch looks chalky."],
+];
+const EYESET = [
+ ["gold_flat","Gold, flat","#F0D97E",
+  "One solid block of colour. Reads as painted on, because a real eye is never a single flat value."],
+ ["gold_slit","Gold + slit + glint","#F0D97E",
+  "Vertical pupil plus one offset near-white pixel. The slit is the most cat-specific feature available; the glint is what makes an eye look wet rather than drawn."],
+ ["white_iris","White + gold iris + slit","#FBFCFE",
+  "White sclera, gold iris, dark slit. A white sclera reads as a drawn cartoon; a coloured one reads as an animal. This keeps both."],
+ ["ice_slit","Ice + slit + glint","#7FC4E8",
+  "Same construction, cool hue. Lovely on the dark coats, fights every warm one - the argument for locking one eye colour."],
+];
+const FCOATS = [["ginger","Ginger"],["russet","Russet"],["chocolate","Chocolate"],
+                ["smoke","Smoke"],["midnight","Midnight"],["berry","Berry"]];
+
+let esel = "gold_slit", fsel = "white_and_black", fcoat = "ginger";
+function frender(){
+  document.getElementById("f-img").src = px(`fb_${fcoat}__${esel}__${fsel}`);
+  const e = EYESET.find(x => x[0] === esel), f = FACES.find(x => x[0] === fsel);
+  document.getElementById("f-title").textContent = `${e[1]} · ${f[1].toLowerCase()}`;
+  document.getElementById("f-note").textContent = e[3] + " " + f[3];
+  for (const [sel, cur] of [["#eyesel", esel], ["#faces", fsel], ["#fcoats", fcoat]])
+    document.querySelectorAll(sel + " .opt").forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.k === cur)));
+}
+function mkOpts(host, list, set){
+  const el = document.getElementById(host);
+  el.innerHTML = "";
+  for (const row of list){
+    const [k, name, chips] = row;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "opt"; b.dataset.k = k;
+    const sw = Array.isArray(chips)
+      ? `<span class="chips">${chips.map(c => `<i style="background:${c}"></i>`).join("")}</span>`
+      : (chips ? `<span class="chips"><i style="background:${chips}"></i></span>` : "");
+    b.innerHTML = sw + `<b>${name}</b>`;
+    b.onclick = () => { set(k); frender(); };
+    el.appendChild(b);
+  }
+}
+mkOpts("eyesel", EYESET, v => esel = v);
+mkOpts("faces",  FACES,  v => fsel = v);
+mkOpts("fcoats", FCOATS, v => fcoat = v);
+frender();
+</script>

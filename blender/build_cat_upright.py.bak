@@ -1,0 +1,210 @@
+"""Build the Deskitty voxel cat from scratch in Blender, headless.
+
+    /Applications/Blender.app/Contents/MacOS/Blender -b -P blender/build_cat.py
+
+First real pass at the "01 - Voxel" mockup we iterated on in the style pitch:
+same 10-block grammar (body, head, 2 ears, 2 eyes, nose, 2-segment tail,
+2 feet), same fur spec, ported from the flat CSS coordinates into a real
+rigged 3D mesh. No pose library yet, no walk cycle - this proves the design
+survives going from flat mockup to an actual render before either gets built.
+
+Re-runnable: wipes the scene and rebuilds from nothing every time.
+"""
+import bpy, os, sys
+from mathutils import Vector
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import catlib as L
+from catlib import PARTS, material, box, rgb
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+BLEND = os.path.join(HERE, "cat.blend")
+RENDER_OUT = os.path.join(HERE, "cat_idle.png")
+RENDER_SIDE_OUT = os.path.join(HERE, "cat_side.png")
+TARGET = Vector((0, 0, 1.0))
+
+# same fur spec as the style-pitch swatches (deskitty-style-pitch.html)
+FUR_BASE  = "#E08A3E"
+FUR_DARK  = "#9C4F1D"
+EYE_DARK  = "#47572D"
+NOSE_PINK = "#D97590"
+
+
+def wipe():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    for blk in (bpy.data.meshes, bpy.data.materials, bpy.data.armatures,
+                bpy.data.actions, bpy.data.cameras, bpy.data.lights):
+        for d in list(blk):
+            blk.remove(d)
+    PARTS.clear()
+    L.MATS.clear()
+
+
+# ----------------------------------------------------------------------------
+# front = -Y (camera looks from -Y toward +Y, matching bricklib's convention)
+def build_model():
+    m_fur  = material("Fur", FUR_BASE, rough=0.55)
+    m_foot = material("Foot", FUR_DARK, rough=0.55)
+    m_eye  = material("Eye", EYE_DARK, rough=0.25)
+    m_nose = material("Nose", NOSE_PINK, rough=0.35)
+
+    box("Body", 0, 0, 0.775, 1.3, 0.9, 0.85, m_fur)
+    box("Head", 0, 0, 1.55, 0.95, 0.85, 0.85, m_fur)
+    box("EarL", -0.32, 0, 2.10, 0.28, 0.28, 0.42, m_fur)
+    box("EarR",  0.32, 0, 2.10, 0.28, 0.28, 0.42, m_fur)
+
+    box("EyeL", -0.22, -0.445, 1.60, 0.16, 0.05, 0.16, m_eye)
+    box("EyeR",  0.22, -0.445, 1.60, 0.16, 0.05, 0.16, m_eye)
+    box("Nose",  0.0,  -0.445, 1.42, 0.12, 0.05, 0.09, m_nose)
+
+    # offset in X so part of each segment clears the body's silhouette instead
+    # of hiding directly behind it (an ortho front camera occludes by X/Z
+    # footprint, not draw order - unlike the flat CSS mockup's z-index trick)
+    box("Tail1", 0.60, 0.35, 0.85, 0.44, 0.40, 0.32, m_fur)
+    box("Tail2", 0.85, 0.50, 1.15, 0.32, 0.32, 0.28, m_fur)
+
+    # four legs, front pair toward -Y (chest) and back pair toward +Y
+    # (haunches) - a static front view still only shows the near pair (the far
+    # pair sits directly behind it, same X/Z), but the side view now shows a
+    # front leg and a back leg distinctly instead of one fused stub, and a
+    # future walk cycle needs all four to stagger apart mid-stride anyway.
+    box("LegFL", -0.35, -0.28, 0.175, 0.30, 0.30, 0.35, m_foot)
+    box("LegFR",  0.35, -0.28, 0.175, 0.30, 0.30, 0.35, m_foot)
+    box("LegBL", -0.35,  0.28, 0.175, 0.30, 0.30, 0.35, m_foot)
+    box("LegBR",  0.35,  0.28, 0.175, 0.30, 0.30, 0.35, m_foot)
+
+
+# ----------------------------------------------------------------------------
+BONES = {
+    "root":     ((0, 0, 0),          (0, 0, 0.15)),
+    "spine":    ((0, 0, 0.35),       (0, 0, 1.2)),
+    "head":     ((0, 0, 1.2),        (0, 0, 1.975)),
+    "tailBase": ((0.3, 0.2, 0.85),   (0.60, 0.35, 0.85)),
+    "tailTip":  ((0.60, 0.35, 0.85), (0.85, 0.50, 1.15)),
+    "legFL":    ((-0.35, -0.28, 0.35), (-0.35, -0.28, 0)),
+    "legFR":    ((0.35, -0.28, 0.35),  (0.35, -0.28, 0)),
+    "legBL":    ((-0.35, 0.28, 0.35),  (-0.35, 0.28, 0)),
+    "legBR":    ((0.35, 0.28, 0.35),   (0.35, 0.28, 0)),
+}
+BONE_PARENT = {
+    "spine": "root", "head": "spine", "tailBase": "spine", "tailTip": "tailBase",
+    "legFL": "root", "legFR": "root", "legBL": "root", "legBR": "root",
+}
+PART_BONE = {
+    "spine": ["Body"],
+    "head": ["Head", "EarL", "EarR", "EyeL", "EyeR", "Nose"],
+    "tailBase": ["Tail1"],
+    "tailTip": ["Tail2"],
+    "legFL": ["LegFL"], "legFR": ["LegFR"],
+    "legBL": ["LegBL"], "legBR": ["LegBR"],
+}
+
+
+def build_armature():
+    arm_data = bpy.data.armatures.new("CatRig")
+    arm = bpy.data.objects.new("Deskitty", arm_data)
+    bpy.context.scene.collection.objects.link(arm)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    eb = arm_data.edit_bones
+    for name, (h, t) in BONES.items():
+        b = eb.new(name)
+        b.head, b.tail = Vector(h), Vector(t)
+        b.use_deform = True
+    for child, parent in BONE_PARENT.items():
+        eb[child].parent = eb[parent]
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    for bone_name, parts in PART_BONE.items():
+        bone = arm_data.bones[bone_name]
+        P_ = bone.matrix_local.copy()
+        P_.translation = bone.matrix_local @ Vector((0, bone.length, 0))
+        Pinv = P_.inverted()
+        for pname in parts:
+            ob = PARTS.get(pname)
+            if not ob:
+                print(f"  WARN missing part {pname}"); continue
+            ob.parent = arm
+            ob.parent_type = "BONE"
+            ob.parent_bone = bone_name
+            ob.matrix_parent_inverse = Pinv
+    for pb in arm.pose.bones:
+        pb.rotation_mode = "XYZ"
+    return arm
+
+
+def aim_camera(cam, loc):
+    cam.location = loc
+    cam.rotation_euler = (TARGET - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
+
+
+# ----------------------------------------------------------------------------
+def build_stage():
+    cam_data = bpy.data.cameras.new("Cam")
+    cam_data.type = "ORTHO"
+    cam_data.ortho_scale = 3.0
+    cam = bpy.data.objects.new("Cam", cam_data)
+    bpy.context.scene.collection.objects.link(cam)
+    aim_camera(cam, (0, -9, 1.0))  # front: looking from -Y toward +Y
+    bpy.context.scene.camera = cam
+
+    def lamp(name, loc, energy, size, color="#FFFFFF"):
+        ld = bpy.data.lights.new(name, type="AREA")
+        ld.energy = energy; ld.size = size
+        ld.color = rgb(color)[:3]
+        lo = bpy.data.objects.new(name, ld)
+        bpy.context.scene.collection.objects.link(lo)
+        lo.location = loc
+        lo.rotation_euler = (TARGET - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
+        return lo
+    lamp("Key", (-3.5, -5, 4.5), 900, 5)
+    lamp("Fill", (4, -3.5, 2.0), 280, 4, color="#EAF0FF")
+    lamp("Rim", (1.5, 4.5, 4), 700, 4, color="#FFF4E0")
+
+    world = bpy.data.worlds.new("W"); bpy.context.scene.world = world
+    world.use_nodes = True
+    bg = world.node_tree.nodes.get("Background")
+    bg.inputs[0].default_value = (0.05, 0.05, 0.06, 1)
+    bg.inputs[1].default_value = 0.4
+
+    sc = bpy.context.scene
+    try:
+        sc.render.engine = "BLENDER_EEVEE_NEXT"
+    except Exception:
+        sc.render.engine = "BLENDER_EEVEE"
+    sc.render.film_transparent = True
+    sc.render.image_settings.file_format = "PNG"
+    sc.render.image_settings.color_mode = "RGBA"
+    sc.render.resolution_x = 640
+    sc.render.resolution_y = 640
+
+
+# ----------------------------------------------------------------------------
+def main():
+    wipe()
+    build_model()
+    build_armature()
+    build_stage()
+    bpy.ops.wm.save_as_mainfile(filepath=BLEND)
+    print(f"SAVED {BLEND}")
+
+    cam = bpy.context.scene.camera
+
+    bpy.context.scene.render.filepath = RENDER_OUT
+    bpy.ops.render.render(write_still=True)
+    print(f"RENDERED {RENDER_OUT}")
+
+    # side profile: from +X, looking toward -X - shows the tail-side silhouette.
+    # eyes/nose are flat decals glued to the front (-Y) face - edge-on from the
+    # side they're just meaningless slivers, so hide them here (same call
+    # LilCleo's own render_states.py makes for its front-only decals).
+    for pname in ("EyeL", "EyeR", "Nose"):
+        PARTS[pname].hide_render = True
+    aim_camera(cam, (9, 0, 1.0))
+    bpy.context.scene.render.filepath = RENDER_SIDE_OUT
+    bpy.ops.render.render(write_still=True)
+    print(f"RENDERED {RENDER_SIDE_OUT}")
+
+
+if __name__ == "__main__":
+    main()
