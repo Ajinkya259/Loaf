@@ -12,6 +12,7 @@ struct CatView: View {
 
     /// 8 frames at 6.5fps is a 1.23s walk cycle. Inherited from lil-cleo, which tuned
     /// it against a real mocap walk, so it's a better starting point than a guess.
+    /// Per-state rates live on `LoafState.fps`; this one drives the procedural bob.
     private static let walkFPS = 6.5
 
     var body: some View {
@@ -38,12 +39,6 @@ struct CatView: View {
         .contentShape(Rectangle())
     }
 
-    /// The frame for this state at this instant, with the contract's fallback chain.
-    ///
-    /// `<state>` → `side_idle`. lil-cleo's chain has a third hop to `hero`, which is
-    /// one of *their* sprites — carrying it over would leave a dead branch. This is
-    /// also why `side_idle.png` must always exist: it is what every unrendered state
-    /// resolves to.
     /// Which frame to draw. Kept out of the `@ViewBuilder` below, which can't hold
     /// ordinary control flow.
     ///
@@ -55,9 +50,15 @@ struct CatView: View {
             let n = max(Sprites.frameCount("jump"), 1)
             return "jump\(min(n - 1, max(0, Int(p * Double(n)))) + 1)"
         }
-        return Sprites.frameName(state.sprite, t: t, fps: Self.walkFPS)
+        return Sprites.frameName(state.sprite, t: t, fps: state.fps)
     }
 
+    /// The sprite for this state, with the contract's fallback chain.
+    ///
+    /// `<state>` → `side_idle`. lil-cleo's chain has a third hop to `hero`, which is
+    /// one of *their* sprites — carrying it over would leave a dead branch. This is
+    /// also why `side_idle.png` must always exist: it is what every unrendered state
+    /// resolves to.
     @ViewBuilder private func sprite(for state: LoafState, t: TimeInterval) -> some View {
         let name = frameName(state, t: t)
         if let img = Sprites.image(name) ?? Sprites.image("side_idle") {
