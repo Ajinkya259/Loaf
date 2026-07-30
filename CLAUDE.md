@@ -140,6 +140,29 @@ of the back, the gaps between the legs, and the step from head to shoulder — o
 features, every one. Any pose that doesn't hold those reads as an orange blob no
 matter how correct its interior is.
 
+**Draw curves as many small regular steps, never few big ones.** This took nine passes
+on the profile sit and is the most transferable thing learned here. A sitting cat's
+profile is one flowing line — up the legs, over the chest, round the head, then a long
+curve down the back into the rump. Describing it with two or three large boxes gives
+0.2–0.4 unit steps, which at display size are 14–28px corners: a staircase, not a
+curve. The fix is the standard pixel-art one — six slabs of ~0.115 are ~3px each and
+the eye integrates them into a smooth line.
+
+Two corrections worth keeping, because both were tried and both were wrong:
+
+- **Block count was never the issue.** "Use fewer, bigger blocks" was tried and made
+  it worse. Big *irregular* steps read as corners; small *regular* ones read as a
+  curve. It is the step size that matters.
+- **Layer in the direction the mass stacks.** Building the curve from vertical columns
+  bent the top down and the underside up at once, leaving a thin diagonal band with no
+  mass — she read as a lizard. A seated cat is upright over a heavy rounded rear, so
+  it has to be horizontal slabs.
+
+**Pale belly is pose-dependent.** Standing, the underside is lit from below and a pale
+band reads as counter-shading. Sitting, that same band lies flat on the ground line and
+reads as a mat she's perched on. In seated poses the pale goes on the chest and front
+legs instead.
+
 ---
 
 ## 4. The look — committed decisions

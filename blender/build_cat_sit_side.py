@@ -5,22 +5,31 @@
 A separate build, because a sit cannot be posed on the standing rig: the legs are
 single rigid blocks with no knee, so no rotation folds the haunches.
 
-THREE BODY BLOCKS, NOT SEVEN. This is the lesson of seven failed passes, and it is not
-about numbers at all.
+THE BACK IS A CURVE, NOT A STAIRCASE. This is what eight earlier passes got wrong, and
+the mistake was subtler than it looks.
 
-Each earlier attempt tried to describe the pose with MORE geometry - haunch, body,
-chest, belly, bib, paw, toe - stacked into a diagonal staircase, on the theory that
-more anatomy reads as more cat. It does the opposite. Every extra block adds another
-step to the outline, and the app draws her at 160x128, where the interior detail is
-gone and the outline is all that is left. A busy outline reads as a lump.
+A sitting cat's profile is one continuous flowing line - up the front legs, over the
+chest, up the neck, round the head, then a long curve down the back into the rump on
+the ground. Every earlier attempt drew that line with two or three large boxes, which
+gives 0.2-0.4 unit steps. At the 160x128 size the app actually draws her, those are
+14-28 pixel corners: not a curve, a flight of stairs. She read as a lump every time.
 
-The walking sprite works because it is four big clean shapes: body, head, legs, tail.
-So this pose is built the same way. The silhouette is a clean L - a tall column at the
-front carrying the head, a low shelf behind it on the ground, one notch of daylight
-underneath between the front paw and the rump, and the tail standing clear above.
+The fix is the standard pixel-art one. A curve is drawn as MANY SMALL REGULAR STEPS,
+not few big ones. Her body here is six horizontal slabs of falling length, each about
+0.115 tall - roughly 3 pixels on screen - so the eye integrates them into one smooth
+line instead of reading each as a corner.
 
-The other rule it obeys, learned the same expensive way: THE TAIL MUST CLEAR THE BACK
-AND SIT AGAINST EMPTY BACKGROUND. It is the most identifying shape in her profile.
+HORIZONTAL slabs, and that detail cost a render of its own. An attempt with vertical
+columns curved the top down and the underside up at once, which left a thin diagonal
+band with no mass in it: she read as a lizard. A seated cat's back is close to UPRIGHT
+above a heavy rounded rear, so the shape has to be layered in the direction the mass
+actually stacks.
+
+The count of blocks was never the point. Big irregular steps read as corners; small
+regular ones read as a curve.
+
+The other rule this obeys, learned expensively: THE TAIL MUST CLEAR THE BACK AND SIT
+AGAINST EMPTY BACKGROUND. It is the most identifying shape in her whole profile.
 """
 import bpy, os, sys
 from mathutils import Vector
@@ -38,14 +47,34 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BLEND = os.path.join(HERE, "cat_sit_side.blend")
 
 # Front = -Y, up = +Z, ground = z 0.
-RUMP_Y,  RUMP_Z  = 0.26, 0.19     # z 0..0.38,    y -0.01..0.53  - the low shelf
-CHEST_Y, CHEST_Z = -0.20, 0.50    # z 0.24..0.76, y -0.43..0.03  - the tall column
-HEAD_Y,  HEAD_Z  = -0.32, 1.09    # z 0.76..1.42  - sits exactly on top of the column
+#
+# THE BODY AS A CURVE. Six horizontal slabs, floor upward: (z0, z1, y front, y back).
+#
+# Read down the fourth column and it is her back curving in as it rises - 0.46, 0.48,
+# 0.45, 0.38, 0.28, 0.14 - which is the line that says "sitting cat" more than anything
+# else in the pose. The third column is her chest, near-vertical with a slight bulge.
+#
+# Slabs, not columns. A first attempt curved the TOP down and the UNDERSIDE up at the
+# same time, which left a thin diagonal band with no mass in it - she read as a lizard.
+# A seated cat's back is close to UPRIGHT with a heavy rounded rear, so the shape has
+# to be built in horizontal layers of falling length, not vertical ones of falling
+# height.
+BACK = [
+    (0.000, 0.115, -0.30, 0.46),
+    (0.115, 0.230, -0.35, 0.48),
+    (0.230, 0.345, -0.37, 0.45),
+    (0.345, 0.460, -0.39, 0.38),
+    (0.460, 0.575, -0.40, 0.28),
+    (0.575, 0.690, -0.39, 0.14),
+]
 
-LEG_H = 0.50      # the front legs reach the ground; the chest above them does not
+SLAB_OVERLAP = 0.012   # slabs overlap in z; a gap would show as a seam through her
+
+HEAD_Y, HEAD_Z = -0.34, 1.02     # z 0.69..1.35, sitting on the top slab
+LEG_H = 0.50
 
 # Measured after the first render; the standing SPRITE_SIDE_DX does not transfer.
-SIT_SIDE_DX = -17 * SPRITE_UPP
+SIT_SIDE_DX = -24 * SPRITE_UPP
 
 
 def wipe():
@@ -66,50 +95,64 @@ def build_model():
     m_w     = material("FaceW", FACE_W, rough=1.0)
     m_k     = material("FaceK", FACE_K, rough=1.0)
 
-    # The low shelf and the tall column, with NOTHING between them. The chest stops
-    # 0.24 above the floor, so daylight shows under it between the front paw and the
-    # rump. That notch is the pose - fill it in and she is a lump again.
-    box("Rump",  0, RUMP_Y,  RUMP_Z,  BODY_W + 0.02, 0.54, 0.38, m_coat)
-    box("Chest", 0, CHEST_Y, CHEST_Z, BODY_W - 0.02, 0.46, 0.52, m_coat)
+    # The curved body, in horizontal layers. Width is constant: X is invisible to the
+    # profile camera, so every unit of effort belongs in the Y-Z outline.
+    for i, (z0, z1, y0, y1) in enumerate(BACK):
+        # The overlap is added UPWARD, not centred. Centred, the bottom slab dipped
+        # 0.006 below z=0 and pushed the sprite's ground line from 24px to 22px - she
+        # would have sunk two pixels every time she sat down.
+        box(f"Body{i}", 0, (y0 + y1) / 2, (z0 + z1) / 2 + SLAB_OVERLAP / 2,
+            BODY_W, y1 - y0, z1 - z0 + SLAB_OVERLAP, m_coat)
+
+    # NO pale belly strip in this pose. Standing, the underside is lit from below and a
+    # pale band there reads as counter-shading. Sitting, that same band lies flat along
+    # the ground line and reads as a mat she is perched on. Her pale goes on the chest
+    # and the front legs instead, where it is doing the same job with none of the
+    # ambiguity.
 
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k)
 
-    # Front legs: one pale column down the front to the ground, with a dark boot. Both
-    # sit at the same Y, so in profile they read as a single column - which is exactly
-    # what a sitting cat's front legs look like side-on.
+    # Front legs: one pale column to the ground with a dark boot. Both sit at the same
+    # Y, so in profile they read as a single column - which is what a sitting cat's
+    # front legs look like side-on.
     for sx, sfx in ((-1, "L"), (1, "R")):
         box("LegF" + sfx, sx * 0.18, -0.34, LEG_H / 2, 0.20, 0.20, LEG_H, m_under)
         box("ToeF" + sfx, sx * 0.18, -0.38, 0.08, 0.21, 0.26, 0.16, m_acc)
 
-    # Pale bib down the front of the column, stopping above the leg. A wide one that
+    # Pale bib down the front of the chest, stopping above the leg. A wide one that
     # meets the leg is the NAPPY that CLAUDE.md lists as a failure class.
-    box("Bib", 0, -0.44, 0.58, 0.22, 0.06, 0.30, m_under)
+    box("Bib", 0, -0.40, 0.60, 0.22, 0.06, 0.26, m_under)
 
-    # THE TAIL, standing well clear of the rump and hooking forward.
+    # THE TAIL, curving up clear of the rump and hooking forward.
     #
     # Behind her, because behind her is empty background and across the front is not -
     # a tail routed across the front has to pass through the body, where profile depth
-    # simply occludes it. That trap has now cost this project three renders: the very
-    # first one it ever made, and twice on this pose.
-    box("Tail1", 0, 0.56, 0.55, 0.13, 0.13, 0.50, m_coat)
-    box("Tail2", 0, 0.59, 0.90, 0.12, 0.14, 0.26, m_coat)
-    box("Tail3", 0, 0.45, 1.00, 0.12, 0.28, 0.12, m_coat)
+    # simply occludes it. That trap has now cost this project three renders: its very
+    # first one, and twice on this pose.
+    box("Tail1", 0, 0.50, 0.42, 0.13, 0.13, 0.44, m_coat)
+    box("Tail2", 0, 0.52, 0.75, 0.12, 0.14, 0.24, m_coat)
+    box("Tail3", 0, 0.39, 0.85, 0.12, 0.28, 0.12, m_coat)
 
 
 # ----------------------------------------------------------------------------
 # A sitting cat turns its head, flicks its tail and breathes. Nothing else moves.
 BONES = {
-    "root":     ((0, RUMP_Y, 0),             (0, RUMP_Y, 0.16)),
-    "spine":    ((0, RUMP_Y, RUMP_Z),        (0, CHEST_Y, CHEST_Z + 0.26)),
+    "root":     ((0, 0.25, 0),               (0, 0.25, 0.16)),
+    "spine":    ((0, 0.20, 0.30),            (0, -0.10, 0.72)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
-    "tailBase": ((0, 0.56, 0.30),            (0, 0.56, 0.80)),
-    "tailTip":  ((0, 0.56, 0.80),            (0, 0.45, 1.06)),
+    "tailBase": ((0, 0.50, 0.20),            (0, 0.50, 0.64)),
+    "tailTip":  ((0, 0.50, 0.64),            (0, 0.39, 0.91)),
 }
 BONE_PARENT = {"spine": "root", "head": "spine",
                "tailBase": "root", "tailTip": "tailBase"}
+
+# The slabs split at the waist, so a breathing spine lifts her chest without dragging
+# her planted rump off the floor.
+_WAIST = 3
 PART_BONE = {
-    "root":  ["Rump", "LegFL", "LegFR", "ToeFL", "ToeFR"],
-    "spine": ["Chest", "Bib"],
+    "root":  [f"Body{i}" for i in range(_WAIST)]
+             + ["LegFL", "LegFR", "ToeFL", "ToeFR"],
+    "spine": [f"Body{i}" for i in range(_WAIST, len(BACK))] + ["Bib"],
     "head":  FACE_PARTS,
     "tailBase": ["Tail1"],
     "tailTip":  ["Tail2", "Tail3"],
