@@ -51,9 +51,21 @@ BLEND = os.path.join(HERE, "cat_sleep.blend")
 # head near body height with the EARS as the highest point, and the whole silhouette
 # stays long and low: 2.15 wide against 0.88 tall.
 HEAD_Y,   HEAD_Z   = -0.56, 0.38    # z 0.05..0.71, ears to 0.90
-NECK_Y,   NECK_Z   = -0.24, 0.14    # z 0..0.28 - LOW, so a notch opens above it
-BODY_Y,   BODY_Z   =  0.24, 0.23    # z 0..0.46
-HAUNCH_Y, HAUNCH_Z =  0.50, 0.22
+NECK_Y,   NECK_Z   = -0.24, 0.13    # z 0..0.26 - LOW, so a notch opens above it
+BODY_Y,   BODY_Z   =  0.16, 0.17    # z 0..0.34 - the DIP between head and hip
+HAUNCH_Y, HAUNCH_Z =  0.56, 0.23    # z 0..0.46 - the hip bump
+
+# THE TOP EDGE NEEDS THREE FEATURES, NOT ONE FLAT LINE.
+#
+# This is what six earlier passes at this pose all missed. Every state that reads well
+# - idle, walk, both sits - is a VERTICAL composition: head, body and legs stack, so
+# they separate from each other for free. Lying down is horizontal, so everything sits
+# at one height and fuses into a bar, and no amount of detail inside that bar helps
+# when the outline is all that survives at 160x128.
+#
+# So the outline is given shape deliberately: head HIGH at 0.71, a neck DIP to 0.26,
+# the mid-body LOW at 0.34, then the hip BUMP back up to 0.46 before the tail. Four
+# changes of direction along the top, where before there was one.
 
 SLEEP_DX = -8 * SPRITE_UPP
 
@@ -78,8 +90,8 @@ def build_model():
 
     # A long low body: haunch, barrel, chest. Slightly different heights so the top
     # edge has some shape rather than being one flat plank.
-    box("Haunch", 0, HAUNCH_Y, HAUNCH_Z, BODY_W + 0.04, 0.42, 0.44, m_coat)
-    box("Body",   0, BODY_Y,   BODY_Z,   BODY_W,        0.66, 0.46, m_coat)
+    box("Haunch", 0, HAUNCH_Y, HAUNCH_Z, BODY_W + 0.04, 0.40, 0.46, m_coat)
+    box("Body",   0, BODY_Y,   BODY_Z,   BODY_W,        0.56, 0.34, m_coat)
     # THE NECK, and it is the point of this layout. It is deliberately LOW - it joins
     # the head to the body along the floor and stops at z 0.28, which opens a notch of
     # background above it between the back of her head and the front of her body.
@@ -88,13 +100,13 @@ def build_model():
     # horn growing out of a lump rather than as an ear on a head. It has to be a NOTCH
     # and not a gap, though: pulling the body back without a neck under it punches a
     # hole clean through her, which at sprite size is just a hole.
-    box("Neck", 0, NECK_Y, NECK_Z, BODY_W - 0.06, 0.30, 0.28, m_coat)
+    box("Neck", 0, NECK_Y, NECK_Z, BODY_W - 0.06, 0.30, 0.26, m_coat)
 
     # Pale belly, but SHORT and central. She is lying on her side so the pale underside
     # should show - it just must not run the full length, because then it joins the
     # pale legs at both ends into one unbroken bar along the floor, which reads as a
     # shadow she is sitting on rather than as any part of her.
-    box("Belly", 0, 0.22, 0.05, BODY_W + 0.01, 0.60, 0.10, m_under)
+    box("Belly", 0, 0.16, 0.05, BODY_W + 0.01, 0.50, 0.10, m_under)
 
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k, eyes="closed")
 
@@ -113,8 +125,8 @@ def build_model():
 
     # A hind leg flopped out behind, so the back half is not a bare block.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("LegB" + sfx, sx * 0.15, 0.66, 0.09, 0.22, 0.34, 0.18, m_under)
-        box("ToeB" + sfx, sx * 0.15, 0.86, 0.08, 0.23, 0.14, 0.16, m_acc)
+        box("LegB" + sfx, sx * 0.15, 0.62, 0.09, 0.22, 0.30, 0.18, m_under)
+        box("ToeB" + sfx, sx * 0.15, 0.80, 0.08, 0.23, 0.14, 0.16, m_acc)
 
     # TAIL laid out long behind her with a lazy flick at the tip. Behind is empty
     # background, so it always reads - and a straight-out tail is what a stretched-out
@@ -122,7 +134,9 @@ def build_model():
     # Kept inside the canvas on purpose. Stretched out she spans 2.05 world units
     # against the sprite's 2.3 - the widest state by a long way, and the first version
     # reached 630px of a 640px frame, one tweak from clipping.
-    tail_curve([(0.60, 0.28), (0.74, 0.20), (0.86, 0.15), (0.95, 0.16), (1.00, 0.24)],
+    # Leaves from the TOP of the hip bump and sweeps down and out, so it is clear of
+    # the body against empty background for most of its length.
+    tail_curve([(0.72, 0.34), (0.86, 0.25), (0.97, 0.19), (1.04, 0.19), (1.08, 0.27)],
                -0.30, 0.14, 0.10, m_coat)
 
 
@@ -132,8 +146,8 @@ BONES = {
     "root":     ((0, 0.30, 0),               (0, 0.30, 0.16)),
     "spine":    ((0, 0.50, 0.20),            (0, -0.30, 0.24)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
-    "tailBase": ((-0.30, 0.60, 0.28),        (-0.30, 0.86, 0.15)),
-    "tailTip":  ((-0.30, 0.86, 0.15),        (-0.30, 1.00, 0.24)),
+    "tailBase": ((-0.30, 0.72, 0.34),        (-0.30, 0.97, 0.19)),
+    "tailTip":  ((-0.30, 0.97, 0.19),        (-0.30, 1.08, 0.27)),
 }
 BONE_PARENT = {"spine": "root", "head": "spine",
                "tailBase": "root", "tailTip": "tailBase"}
