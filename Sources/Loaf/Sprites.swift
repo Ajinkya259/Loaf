@@ -30,17 +30,38 @@ enum Sprites {
         return .module
     }()
 
+    // MARK: Weight
+
+    /// Which body weight to draw. Set from `Settings`; every lookup goes through it.
+    ///
+    /// Weight is a DIRECTORY, not a filename suffix - `sprites/<weight>/<state>.png`.
+    /// Fatness applies to every pose, so as a suffix it would be a cross product that
+    /// multiplies again with each new state. As a directory the naming contract inside
+    /// each folder is identical, so a new state gets every weight for free and a new
+    /// weight gets every state for free.
+    static var weight = "normal" {
+        didSet {
+            guard weight != oldValue else { return }
+            // Caches are keyed by weight, so nothing has to be thrown away - but the
+            // frame counts must not be, or a state that has a cycle at one weight and
+            // not another would silently keep the wrong count.
+            frameCounts.removeAll()
+        }
+    }
+
     // MARK: Loading
 
     private static var cache: [String: NSImage] = [:]
 
     /// One sprite by filename stem, cached. Returns nil when the file isn't bundled.
     static func image(_ name: String) -> NSImage? {
-        if let hit = cache[name] { return hit }
-        guard let url = bundle.url(forResource: name, withExtension: "png", subdirectory: "sprites")
-                ?? bundle.url(forResource: "sprites/\(name)", withExtension: "png"),
+        let key = "\(weight)/\(name)"
+        if let hit = cache[key] { return hit }
+        guard let url = bundle.url(forResource: name, withExtension: "png",
+                                   subdirectory: "sprites/\(weight)")
+                ?? bundle.url(forResource: "sprites/\(weight)/\(name)", withExtension: "png"),
               let img = NSImage(contentsOf: url) else { return nil }
-        cache[name] = img
+        cache[key] = img
         return img
     }
 
@@ -49,10 +70,11 @@ enum Sprites {
     /// How many frames `<name>1.png … <name>N.png` are bundled. 0 means this state is
     /// a single still, not a cycle. Capped at 16 so a bad name can't spin forever.
     static func frameCount(_ name: String) -> Int {
-        if let hit = frameCounts[name] { return hit }
+        let key = "\(weight)/\(name)"
+        if let hit = frameCounts[key] { return hit }
         var n = 0
         while n < 16, image("\(name)\(n + 1)") != nil { n += 1 }
-        frameCounts[name] = n
+        frameCounts[key] = n
         return n
     }
 

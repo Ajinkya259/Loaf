@@ -22,7 +22,6 @@ enum LoafState: String, CaseIterable, Identifiable {
 
     // Planned. See CLAUDE.md §6. No art yet; the menu disables these.
     case chill          // lounging with a prop vignette (coffee, popcorn)
-    case chonk          // the task-load body, heavier and visibly fed up
     case stressed       // hunched, ears flat — blocked on ear bones
     case wake           // the morning stretch
 
@@ -55,7 +54,6 @@ enum LoafState: String, CaseIterable, Identifiable {
         case .sleep:    "Sleep"
         case .jump:     "Jump"
         case .chill:    "Chill"
-        case .chonk:    "Chonk"
         case .stressed: "Stressed"
         case .wake:     "Wake"
         }

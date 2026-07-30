@@ -40,7 +40,7 @@ from catlib import PARTS, material, box
 from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K,
                        setup_viewport, face_collections, sprite_stage,
                        face, render_to, SPRITES, SPRITE_UPP,
-                       BODY_W, HEAD_S, HEAD_W,
+                       BODY_W, HEAD_S, HEAD_W, girth, belly,
                        build_face, FACE_PARTS, FACE_FRONT_DECALS, FACE_CHEEK_DECALS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -101,8 +101,13 @@ def build_model():
         # The overlap is added UPWARD, not centred. Centred, the bottom slab dipped
         # 0.006 below z=0 and pushed the sprite's ground line from 24px to 22px - she
         # would have sunk two pixels every time she sat down.
-        box(f"Body{i}", 0, (y0 + y1) / 2, (z0 + z1) / 2 + SLAB_OVERLAP / 2,
-            BODY_W, y1 - y0, z1 - z0 + SLAB_OVERLAP, m_coat)
+        # WEIGHT swells each slab in Y, not in Z. In profile Y is screen-width, so a
+        # deeper body reads as a heavier one - and growing in Z instead would push the
+        # bottom slab through the floor, which is exactly what it did in the sleeping
+        # pose. Grown about the slab's own centre so the curve keeps its shape.
+        ym, yh = (y0 + y1) / 2, belly(y1 - y0)
+        box(f"Body{i}", 0, ym, (z0 + z1) / 2 + SLAB_OVERLAP / 2,
+            girth(BODY_W), yh, z1 - z0 + SLAB_OVERLAP, m_coat)
 
     # NO pale belly strip in this pose. Standing, the underside is lit from below and a
     # pale band there reads as counter-shading. Sitting, that same band lies flat along

@@ -31,7 +31,18 @@ BLEND = os.path.join(HERE, "cat.blend")
 # A symlink here was tried first and does not work - SwiftPM's .copy duplicates the
 # link verbatim into the resource bundle, where its relative path no longer resolves,
 # and the app silently finds no sprites at all.
-SPRITES = os.path.join(HERE, "..", "Sources", "Loaf", "Resources", "sprites")
+# WEIGHT IS A DIRECTORY, NOT A FILENAME SUFFIX.
+#
+# Task load makes her heavier, and fatness applies to EVERY pose - so naively it is a
+# cross product: weights x states, which this project flagged at planning time as 64
+# hand-managed sprites that multiply again with every new state.
+#
+# A directory per weight collapses it. The naming contract inside each folder is
+# byte-identical, so a new state gets every weight for free and a new weight gets every
+# state for free. Nothing multiplies, and the app just picks a prefix. Same arrangement
+# lil-cleo uses for its characters.
+WEIGHT = os.environ.get("LOAF_WEIGHT", "normal")
+SPRITES = os.path.join(HERE, "..", "Sources", "Loaf", "Resources", "sprites", WEIGHT)
 
 # COMMITTED PALETTE - bicolour ginger with a monochrome face.
 #
@@ -89,12 +100,24 @@ FACE_K    = "#1A1A1E"   # pupil, nose, mouth
 # which is what a heavy cat actually looks like from the side.
 #
 # Width grows too, but that is for the front views only, where it is the whole story.
-FAT       = float(os.environ.get("LOAF_FAT", "1.0"))
+FAT_BY_WEIGHT = {"lean": 0.72, "normal": 1.0, "chonk": 1.55}
+FAT       = FAT_BY_WEIGHT[WEIGHT]
 BACK_TOP  = 0.82   # the one dimension weight does NOT change
+
+
+def girth(v):
+    """Scale a WIDTH (X). Invisible in profile, so this is the front views' whole story."""
+    return v * (1 + 0.24 * (FAT - 1))
+
+
+def belly(v):
+    """Scale a DEPTH (Z). This is what the profile camera reads as weight."""
+    return v * (1 + 0.40 * (FAT - 1))
 
 BODY_LEN  = 0.90   # along Y
 BODY_W    = 0.52 * (1 + 0.24 * (FAT - 1))   # along X - front views only
 BODY_H    = 0.46 * (1 + 0.40 * (FAT - 1))   # along Z - the belly drop
+# (girth/belly above are defined before these so other pose builds can import them)
 LEG_H     = 0.40
 BODY_Z    = BACK_TOP - BODY_H / 2
 BODY_FRONT = -BODY_LEN / 2
