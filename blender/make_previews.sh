@@ -10,7 +10,8 @@ cd "$(dirname "$0")"
 mkdir -p previews
 
 # Blender renders straight into the Swift package - there is no copy step.
-SPRITES=../Sources/Loaf/Resources/sprites
+# Reviews the NORMAL weight; the others are the same geometry scaled.
+SPRITES=../Sources/Loaf/Resources/sprites/normal
 
 for f in "$SPRITES"/*.png; do
     [ -f "$f" ] || continue

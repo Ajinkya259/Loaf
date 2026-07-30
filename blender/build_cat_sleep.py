@@ -38,7 +38,7 @@ from catlib import PARTS, material, box
 from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K, tail_curve,
                        setup_viewport, face_collections, sprite_stage,
                        face, render_to, SPRITES, SPRITE_UPP,
-                       BODY_W, HEAD_S, HEAD_W,
+                       BODY_W, HEAD_S, HEAD_W, girth, belly,
                        build_face, FACE_PARTS, FACE_FRONT_DECALS, FACE_CHEEK_DECALS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -90,8 +90,15 @@ def build_model():
 
     # A long low body: haunch, barrel, chest. Slightly different heights so the top
     # edge has some shape rather than being one flat plank.
-    box("Haunch", 0, HAUNCH_Y, HAUNCH_Z, BODY_W + 0.04, 0.40, 0.46, m_coat)
-    box("Body",   0, BODY_Y,   0.14,     BODY_W,        0.56, 0.28, m_coat)
+    # Lying down, weight shows as a taller mound - she spreads rather than stretches.
+    # A block that gets taller must GROW UPWARD FROM THE FLOOR, so its centre is half
+    # its own height. Scaling the height while keeping a fixed centre grows it downward
+    # too, which put the chonk mound 0.05 through z=0 and took that sprite's ground line
+    # from 24px to 10px. Identical at normal weight, where half-height IS the old centre.
+    box("Haunch", 0, HAUNCH_Y, belly(0.46) / 2, girth(BODY_W + 0.04), 0.40,
+        belly(0.46), m_coat)
+    box("Body",   0, BODY_Y,   belly(0.28) / 2, girth(BODY_W),        0.56,
+        belly(0.28), m_coat)
     # THE FLANK is the only part that breathes, and it is split out purely so it CAN.
     #
     # It rides on top of the body, so it owns the visible top edge between neck and
@@ -100,7 +107,8 @@ def build_model():
     # which is exactly what happened when the whole spine breathed: the pivot sits 1.4
     # units from her extended front legs, so 2.6 degrees swung them 18px into the floor
     # and took one frame's ground line from 24px to 4px.
-    box("Flank",  0, BODY_Y,   0.30,     BODY_W,        0.52, 0.14, m_coat)
+    box("Flank",  0, BODY_Y,   belly(0.28) + belly(0.14) / 2 - 0.05,
+                  girth(BODY_W), 0.52, belly(0.14), m_coat)
     # THE NECK, and it is the point of this layout. It is deliberately LOW - it joins
     # the head to the body along the floor and stops at z 0.28, which opens a notch of
     # background above it between the back of her head and the front of her body.

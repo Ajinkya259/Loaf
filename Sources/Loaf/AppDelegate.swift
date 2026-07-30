@@ -157,6 +157,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        let weightMenu = NSMenu()
+        for (name, id) in Settings.weights {
+            let item = NSMenuItem(title: name, action: #selector(pickWeight(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            item.state = (settings.weight == id) ? .on : .off
+            weightMenu.addItem(item)
+        }
+        let weightRoot = NSMenuItem(title: "Weight", action: nil, keyEquivalent: "")
+        weightRoot.submenu = weightMenu
+        menu.addItem(weightRoot)
+
         let sizeMenu = NSMenu()
         for (name, value) in Settings.sizePresets {
             let item = NSMenuItem(title: name, action: #selector(pickSize(_:)), keyEquivalent: "")
@@ -193,6 +205,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // confusing default when you're trying to look at her.
         engine.facing = 1
         engine.pin(s)
+    }
+
+    @objc private func pickWeight(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        settings.weight = id
     }
 
     @objc private func pickSize(_ sender: NSMenuItem) {

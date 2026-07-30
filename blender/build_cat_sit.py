@@ -24,7 +24,7 @@ from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import catlib as L
 from catlib import PARTS, material, box
-from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K,
+from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K, girth, belly,
                        setup_viewport, face_collections, sprite_stage,
                        face, render_to, SPRITES,
                        build_face, FACE_PARTS, FACE_FRONT_DECALS, FACE_CHEEK_DECALS)
@@ -47,8 +47,9 @@ BLEND = os.path.join(HERE, "cat_sit.blend")
 HEAD_S   = 0.66
 HEAD_W   = 0.78
 # The body compresses to make room, so she does not grow taller just by sitting.
-RUMP_W   = 0.70
-TORSO_W  = 0.54
+# Front-on, X is the only axis the camera has, so weight is all width here.
+RUMP_W   = girth(0.70)
+TORSO_W  = girth(0.54)
 RUMP_Z   = 0.18     # rump centre; sits flat on the ground
 TORSO_Z  = 0.51
 HEAD_Z   = 0.99
