@@ -163,6 +163,46 @@ with no knee, so no rotation folds the haunches. A sit needs different geometry 
 the back legs collapse into one wide rump. Same reason a future `sleep` will need
 its own build.
 
+**The face lives in ONE place: `build_face()` in `build_cat.py`.** Poses are separate
+builds, so every pose needs its own copy of the head — which is precisely how the
+standing and sitting cats drifted apart twice. Proportions are fractions of a
+reference head (0.78 × 0.66), scaled, so a pose only declares how big its head is.
+`FACE_PARTS` splices the part list into a pose's bone map. Never hand-copy face
+geometry into a pose again.
+
+**Her head must be the SAME SIZE in every pose.** The front sit uses a 0.50 head
+against the stander's 0.66, so she loses a quarter of her head the moment she sits
+down. An oversized head on a small body is the whole cute-quadruped trick, and it
+applies to every pose. This is currently *wrong* in `build_cat_sit.py` and is the
+single most likely reason the front sit reads weaker than the standing views.
+
+### Open: the profile sit doesn't work yet
+
+`build_cat_sit_side.py` exists and renders `sit_side.png`, but after four passes it
+still reads as a **kangaroo**, not a sitting cat. Not wired into the app.
+
+The reasoning behind it is sound and worth keeping: profile is the informative angle
+for a quadruped (head-on, a sitting cat hides its whole body behind its head), and
+she currently snaps 90° to face the camera when she sits at a corner, which nothing
+alive does. What defeated four passes:
+
+| Tried | Result |
+|---|---|
+| Single-step back, tall torso | Kangaroo |
+| Three-step staircase back | Kangaroo |
+| Full-size head (0.64, not 0.54) | Better proportioned, still a kangaroo |
+| Head pushed forward for a shoulder step | Still a kangaroo |
+
+The remaining problem is that **head and torso fuse into one orange column** — the
+recorded "cow" failure, where a head level with the back merges into the body. In the
+standing pose the head clears it by sitting proud of the back line with a real
+shoulder step, and no equivalent has been found for an upright seated body.
+
+**Do not keep nudging numbers.** That is four passes of exactly the oscillation this
+file warns about in §7. Get a reference image of a sitting cat in profile, measure its
+proportions, and port them — the way measuring the Veo render fixed the standing
+silhouette after four failed hand-tuned passes.
+
 **Colour method that worked, reuse it:** score candidates in CIE L\* — coat-to-
 underside gap ≥ 25, accent ≤ L\*22, eye ≥ 15 from coat — then confirm with a
 grayscale squint test. 9 of 13 hand-picked colourways failed this. Value contrast
