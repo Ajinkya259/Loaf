@@ -122,17 +122,20 @@ should be Loaf's:
 
 | Angle | Used for |
 |---|---|
-| **Side** (profile, facing screen-right) | `side_idle`, `walk`, `run` — anything that travels |
-| **Front** (facing camera) | every expressive/idle state: `sit`, `sleep`, `chonk`, `stressed`, `chill`, `wake` |
+| **Side** (profile, facing screen-right) | `side_idle`, `walk`, `jump`, `sit_side`, `sleep` |
+| **Front** (facing camera) | `front_idle`, `sit`, and the expressive states still to come |
 
-Two consequences:
+**Only right-facing side sprites are rendered.** The app mirrors them for leftward
+travel (`scaleEffect(x: facing)`). Never render a left-facing variant.
 
-- **Only right-facing side sprites are rendered.** The app mirrors them for leftward
-  travel (`scaleEffect(x: facing)` in lil-cleo's `ImageCharacterView`). Never render a
-  left-facing variant.
-- **Don't render a side view of a non-locomotion state.** It isn't only redundant — the
-  bell taper that makes a sit read lives in X, the width axis, which is exactly what a
-  side camera can't see. An early side render of the sit pose read as a marmot.
+**The rule bent once, deliberately.** It was originally written as "never render a side
+view of a non-locomotion state", from a failed attempt to render the *front* sit
+sideways, which read as a marmot. But that only proved **front-designed geometry
+doesn't survive profile** — the bell taper that makes that pose work lives in the width
+axis, exactly what a side camera can't see. Geometry designed *for* profile is a
+different question, and `sit_side` and `sleep` both have their own builds. Both exist
+because she arrives at a corner walking in profile, and turning 90° to face the camera
+just to sit down is something nothing alive does.
 
 ---
 
@@ -151,11 +154,15 @@ exist — it's what any state with no art yet renders as. Ship it first, always.
 
 Current sprites:
 
-| File | State | Angle |
-|---|---|---|
-| `side_idle.png` | standing, neutral | side |
-| `front_idle.png` | standing, neutral | front |
-| `sit.png` | sitting | front |
+| File | State | Angle | Build |
+|---|---|---|---|
+| `side_idle.png` | standing, neutral | side | `build_cat.py` |
+| `front_idle.png` | standing, neutral | front | `build_cat.py` |
+| `walk1…8.png` | walk cycle | side | `build_cat.py` |
+| `jump1…6.png` | jump, played by progress | side | `build_cat.py` |
+| `sit.png` | sitting | front | `build_cat_sit.py` |
+| `sit_side.png` | sitting | side | `build_cat_sit_side.py` |
+| `sleep1…4.png` | asleep, breathing cycle | side | `build_cat_sleep.py` |
 
 ---
 
@@ -167,7 +174,7 @@ Locked into `build_cat.py` — the exploration scripts are history, not source.
 |---|---|
 | Coat | `#E8944A` back, head, tail |
 | Underside | `#F6F1E7` belly, bib, legs |
-| Accent | `#2B2B33` socks, ear tips |
+| Accent | `#2B2B33` socks and toes only — **not** ear tips (see below) |
 | Face | `#FBF8F4` / `#1A1A1E` only |
 | Lighting | hard axis suns, no shadows, no specular |
 
@@ -175,6 +182,12 @@ Locked into `build_cat.py` — the exploration scripts are history, not source.
 patch, white inner ear; black pupil, nose and mouth. It borrows nothing from the body,
 so one face fits any colourway and she stays a single character. It is also the highest
 contrast on the model, landing where you want the eye to go first.
+
+**Ears are one colour, with no dark tip.** The committed palette originally put the
+accent on the ear tips. Head-on that was fatal: a dark cap terminates the taper, so each
+ear read as a separate dark-topped post rather than a triangle growing out of the head.
+Three colours stacked in a 0.19-tall shape is too much information at sprite size. It is
+also more honest for a ginger cat — black ear tips are a colourpoint marking.
 
 **Eyes have a vertical slit pupil.** The most cat-specific feature available — no other
 common pet has one. Also animatable: widen for startled, narrow for focused, no new
