@@ -80,11 +80,23 @@ FACE_K    = "#1A1A1E"   # pupil, nose, mouth
 #   3. LOW-SLUNG. Body deeper, legs shorter. The old 0.54 body on 0.50 legs was leggy;
 #      cats are long and low.
 #   4. SHORT MUZZLE. The old 0.12 protrusion was a snout. Cat muzzles barely exist.
+# WEIGHT. 1.0 is her normal build and renders byte-identical to before.
+#
+# Task load is the mechanic the whole app exists for, and in profile it has exactly one
+# axis available: X is invisible to the side camera, so getting heavier has to read as
+# the BELLY DROPPING toward the floor. The back line stays put at 0.82 and the body
+# grows downward from it, so her legs appear to shorten as the belly closes on them -
+# which is what a heavy cat actually looks like from the side.
+#
+# Width grows too, but that is for the front views only, where it is the whole story.
+FAT       = float(os.environ.get("LOAF_FAT", "1.0"))
+BACK_TOP  = 0.82   # the one dimension weight does NOT change
+
 BODY_LEN  = 0.90   # along Y
-BODY_W    = 0.52   # along X
-BODY_H    = 0.46   # along Z
+BODY_W    = 0.52 * (1 + 0.24 * (FAT - 1))   # along X - front views only
+BODY_H    = 0.46 * (1 + 0.40 * (FAT - 1))   # along Z - the belly drop
 LEG_H     = 0.40
-BODY_Z    = LEG_H + BODY_H / 2 - 0.04
+BODY_Z    = BACK_TOP - BODY_H / 2
 BODY_FRONT = -BODY_LEN / 2
 BODY_BACK  =  BODY_LEN / 2
 
@@ -320,8 +332,10 @@ def build_model():
     m_k     = material("FaceK", FACE_K, rough=1.0)
 
     box("Body",   0, 0, BODY_Z, BODY_W, BODY_LEN, BODY_H, m_coat)
-    box("Chest",  0, -0.55, BODY_Z, 0.50, 0.34, 0.52, m_coat)
-    box("Haunch", 0, BODY_BACK - 0.10, BODY_Z - 0.05, 0.58, 0.42, 0.48, m_coat)
+    box("Chest",  0, -0.55, BODY_Z, 0.50 * (1 + 0.24 * (FAT - 1)), 0.34,
+        0.52 * (1 + 0.30 * (FAT - 1)), m_coat)
+    box("Haunch", 0, BODY_BACK - 0.10, BODY_Z - 0.05,
+        0.58 * (1 + 0.24 * (FAT - 1)), 0.42, 0.48 * (1 + 0.34 * (FAT - 1)), m_coat)
     # Pale underside. Counter-shading is not styling: nearly every cat is lighter
     # underneath, and the eye reads its absence as wrong before it can say why.
     box("Belly", 0, 0, BODY_Z - BODY_H / 2 + 0.045, BODY_W + 0.01, BODY_LEN + 0.01,
