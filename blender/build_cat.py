@@ -204,14 +204,31 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k):
             0.20 * kw, 0.05 * k, 0.19 * k, m_w)
         box("Pup" + sfx, sx * 0.165 * kw, face_y - 0.045 * k, head_z + 0.05 * k,
             0.055 * kw, 0.05 * k, 0.15 * k, m_k)
-    # Cheek set: the same eye glued to the head's X faces, for profile renders. A flat
+    # Cheek set: THE SAME EYE, glued to the head's X faces for profile renders. A flat
     # decal seen edge-on is a meaningless sliver, so only the set facing the camera is
     # ever rendered.
+    #
+    # These have to match the front set on screen, and for a while they did not. When
+    # the front eyes were redesigned - bigger, taller than wide, moved lower - this set
+    # was left behind at the old flat geometry, so she had big round eyes head-on and
+    # small squinting ones in profile. Same character, two different faces depending on
+    # which way she was pointing.
+    #
+    # The projections differ, so matching means matching what LANDS ON SCREEN, not the
+    # numbers: in profile the eye's Y depth becomes its screen width, where head-on
+    # that came from X. Hence 0.20 on Y here against 0.20 on X above, and an identical
+    # 0.19 height and head_z + 0.05 placement in both.
+    #
+    # They also have to sit OUTBOARD OF THE CHEEKS. In profile X is depth, so the cheek
+    # blocks - which stick out to cheek_x + 0.065 to widen the face head-on - were
+    # nearer the camera than the eye at cheek_x + 0.02 and quietly clipped its lower
+    # half. Pushing the decals out costs nothing: in profile X only decides what is in
+    # front of what, never where anything lands on screen.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("EyeSide" + sfx, sx * (cheek_x + 0.02), head_y - 0.15 * k,
-            head_z + 0.09 * k, 0.05, 0.18 * k, 0.11 * k, m_w)
-        box("PupSide" + sfx, sx * (cheek_x + 0.045), head_y - 0.15 * k,
-            head_z + 0.09 * k, 0.05, 0.045 * k, 0.11 * k, m_k)
+        box("EyeSide" + sfx, sx * (cheek_x + 0.10 * kw), head_y - 0.13 * k,
+            head_z + 0.05 * k, 0.05, 0.20 * k, 0.19 * k, m_w)
+        box("PupSide" + sfx, sx * (cheek_x + 0.125 * kw), head_y - 0.15 * k,
+            head_z + 0.05 * k, 0.05, 0.055 * k, 0.15 * k, m_k)
 
 
 # Every part build_face() creates, so a pose's bone map can just splice this in

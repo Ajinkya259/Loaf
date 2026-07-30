@@ -51,24 +51,23 @@ BLEND = os.path.join(HERE, "cat_sit_side.blend")
 # The back is a THREE-STEP STAIRCASE - rump, loin, shoulder - not a single step. One
 # step gave a low box behind a vertical column, which read as a kangaroo: the whole
 # character of a sitting cat is in the diagonal from the ground to the shoulder.
-RUMP_Y,  RUMP_Z  = 0.22, 0.19
-LOIN_Y,  LOIN_Z  = 0.02, 0.44
-TORSO_Y, TORSO_Z = -0.08, 0.58
+# TWO MASSES ONLY: a rump on the ground at the back, and a narrow chest column at
+# the front. THE GAP BETWEEN THEM IS THE POSE.
+#
+# Four earlier passes all produced a kangaroo, and the reason was the same every time:
+# the silhouette was a solid mass from the ground to the head. That is what a seated
+# bear is. A seated cat's profile is defined by three pieces of NEGATIVE space - under
+# the chest between the front paws and the folded hind foot, under the chin where the
+# head overhangs the chest, and behind the neck where the head is deeper than the
+# chest. A three-step staircase back was tried and made it worse, because every extra
+# block fills more of the silhouette in.
+RUMP_Y,  RUMP_Z  = 0.26, 0.20     # z 0..0.40, y 0.00..0.52
+CHEST_Y, CHEST_Z = -0.20, 0.52    # z 0.30..0.74 - bottom clear of the ground
 
-# THE HEAD IS THE SAME SIZE AS WHEN SHE IS STANDING. It is the same cat.
-#
-# This was the real reason the first two attempts read as a kangaroo, not the back
-# line. The front sit uses a 0.50 head against the stander's 0.66 - she loses a
-# quarter of her head the moment she sits down - and copying that scale here left a
-# small head on a tall stacked body, which is a kangaroo's proportions exactly.
-#
-# An oversized head on a small body is the whole cute-quadruped trick and it is
-# already recorded as this project's most valuable proportion lesson. It applies to
-# every pose, not just the standing one.
-HEAD_S,  HEAD_W  = 0.64, 0.76
-# Sits OVER the chest, only slightly forward. At -0.36 it overhung by 0.23 and she
-# read as begging.
-HEAD_Y,  HEAD_Z  = -0.34, 1.10
+# Same head as every other pose, and the same total height as the front sit, so the
+# three states read as one cat. Head is 52% of her height in both.
+HEAD_S,  HEAD_W  = 0.66, 0.78
+HEAD_Y,  HEAD_Z  = -0.20, 0.99
 
 # Measured after the first render: the standing SPRITE_SIDE_DX is -62px, but this pose
 # has a different silhouette - taller, and its mass sits further back - so it needs its
@@ -94,30 +93,30 @@ def build_model():
     m_w     = material("FaceW", FACE_W, rough=1.0)
     m_k     = material("FaceK", FACE_K, rough=1.0)
 
-    # The back line, as a rising staircase: rump on the ground, loin, then shoulder.
-    box("Rump",  0, RUMP_Y,  RUMP_Z,  0.54, 0.62, 0.38, m_coat)
-    box("Loin",  0, LOIN_Y,  LOIN_Z,  0.52, 0.50, 0.40, m_coat)
-    box("Torso", 0, TORSO_Y, TORSO_Z, 0.48, 0.42, 0.44, m_coat)
+    # Rump on the ground at the back. Nothing between it and the chest.
+    box("Rump",  0, RUMP_Y,  RUMP_Z,  0.54, 0.52, 0.40, m_coat)
+    # Narrow chest column, bottom CLEAR OF THE GROUND. 0.40 deep against a 0.66 head,
+    # which buys 0.13 of chin overhang at the front and 0.13 of notch behind the neck -
+    # the two undercuts that stop head and body fusing into one column.
+    box("Chest", 0, CHEST_Y, CHEST_Z, 0.48, 0.40, 0.44, m_coat)
 
-    # Pale bib down the chest front. Narrow, and stopping well above the legs - a wide
-    # one meeting the legs is the NAPPY that CLAUDE.md lists as a failure class and
-    # that came back in the front sit the moment it was recoloured.
-    box("Bib", 0, -0.30, 0.56, 0.22, 0.06, 0.28, m_under)
+    # Pale bib down the chest front. Narrow, and stopping above the legs - a wide one
+    # meeting them is the NAPPY that CLAUDE.md lists as a failure class.
+    box("Bib", 0, -0.41, 0.54, 0.22, 0.06, 0.30, m_under)
 
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k)
 
-    # FOLDED HIND LEG. The single most cat-specific thing in a profile sit: the thigh
-    # stays high and back while the shin folds forward flat along the ground, so the
-    # foot ends up beside the front paws. Without it the rump is just a box on the floor.
+    # FOLDED HIND LEG, pulled BACK so it does not meet the front paws. The 0.12 gap it
+    # leaves is the under-chest negative space, and that gap is doing more work for
+    # this silhouette than any block in it.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("Hock" + sfx, sx * 0.24, 0.05, 0.09, 0.15, 0.52, 0.18, m_coat)
-        box("PawB" + sfx, sx * 0.24, -0.26, 0.07, 0.17, 0.22, 0.14, m_under)
+        box("Hock" + sfx, sx * 0.24, 0.14, 0.09, 0.15, 0.44, 0.18, m_coat)
+        box("PawB" + sfx, sx * 0.24, -0.02, 0.07, 0.17, 0.20, 0.14, m_under)
 
-    # Front legs: straight vertical posts under the shoulder, pale with dark boots,
-    # the same as every other pose.
+    # Front legs: vertical posts under the chin, pale with dark boots, as in every pose.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("LegF" + sfx, sx * 0.15, -0.38, 0.25, 0.18, 0.22, 0.50, m_under)
-        box("ToeF" + sfx, sx * 0.15, -0.44, 0.08, 0.19, 0.28, 0.16, m_acc)
+        box("LegF" + sfx, sx * 0.15, -0.30, 0.22, 0.18, 0.20, 0.44, m_under)
+        box("ToeF" + sfx, sx * 0.15, -0.36, 0.08, 0.19, 0.26, 0.16, m_acc)
 
     # TAIL, and the only part of this pose that needs real care.
     #
@@ -133,16 +132,16 @@ def build_model():
     # legs, which is where a real tail would be, and the tip emerges and hooks up in
     # front of her front paws (front edge y=-0.52), where nothing else is. The upturn
     # is what stops the forward sweep reading as a doormat.
-    box("Tail1", -0.34,  0.20,  0.08, 0.13, 0.50, 0.13, m_coat)
-    box("Tail2", -0.34, -0.30,  0.08, 0.13, 0.52, 0.13, m_coat)
-    box("Tail3", -0.34, -0.62,  0.20, 0.13, 0.13, 0.28, m_coat)
+    box("Tail1", -0.34,  0.24,  0.08, 0.13, 0.48, 0.13, m_coat)
+    box("Tail2", -0.34, -0.22,  0.08, 0.13, 0.46, 0.13, m_coat)
+    box("Tail3", -0.34, -0.51,  0.20, 0.13, 0.13, 0.28, m_coat)
 
 
 # ----------------------------------------------------------------------------
 # A sitting cat turns its head, flicks its tail and breathes. Nothing else moves.
 BONES = {
     "root":     ((0, RUMP_Y, 0),            (0, RUMP_Y, 0.18)),
-    "spine":    ((0, RUMP_Y, RUMP_Z),       (0, TORSO_Y, TORSO_Z + 0.28)),
+    "spine":    ((0, RUMP_Y, RUMP_Z),       (0, CHEST_Y, CHEST_Z + 0.26)),
     "head":     ((0, HEAD_Y + 0.22, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
     "tailBase": ((-0.34, 0.45, 0.08),       (-0.34, -0.05, 0.08)),
     "tailTip":  ((-0.34, -0.05, 0.08),      (-0.34, -0.62, 0.10)),
@@ -152,7 +151,7 @@ BONE_PARENT = {"spine": "root", "head": "spine",
 PART_BONE = {
     "root":  ["Rump", "HockL", "HockR", "PawBL", "PawBR",
               "LegFL", "LegFR", "ToeFL", "ToeFR"],
-    "spine": ["Loin", "Torso", "Bib"],
+    "spine": ["Chest", "Bib"],
     "head":  FACE_PARTS,
     "tailBase": ["Tail1"],
     "tailTip":  ["Tail2", "Tail3"],
