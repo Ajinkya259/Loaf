@@ -17,9 +17,9 @@ enum LoafState: String, CaseIterable, Identifiable {
     case look           // standing, turned to face you
     case sit            // sitting, front
     case sitSide        // sitting, profile — the same angle she walks in
+    case sleep          // curled up asleep, profile
 
     // Planned. See CLAUDE.md §6. No art yet; the menu disables these.
-    case sleep          // curled up — needs its own build, a rig can't fold her flat
     case chill          // lounging with a prop vignette (coffee, popcorn)
     case chonk          // the task-load body, heavier and visibly fed up
     case stressed       // hunched, ears flat — blocked on ear bones
@@ -72,7 +72,7 @@ enum LoafState: String, CaseIterable, Identifiable {
     /// width axis, exactly what a side camera cannot see. The real lesson was
     /// "front-designed geometry doesn't survive profile", not "a sit can't be shown in
     /// profile". See SPRITE_CONTRACT.md §2.
-    var isProfile: Bool { self == .idle || self == .walk || self == .sitSide }
+    var isProfile: Bool { self == .idle || self == .walk || self == .sitSide || self == .sleep }
 
     /// Locomotion states travel, so the wander loop moves the window under them.
     /// Everything else plays in place.

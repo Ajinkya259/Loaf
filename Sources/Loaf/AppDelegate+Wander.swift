@@ -57,9 +57,16 @@ extension AppDelegate {
             }
 
         case .resting:
-            // Sit a while, then get up and stroll again. When `sleep` has art this is
-            // where she'll drift off instead.
-            if Date().timeIntervalSince(restStartedAt) > Double.random(in: 12...20) {
+            // Sit a while, then drift off, then eventually get up and stroll again.
+            //
+            // The sit→sleep delay is what makes the nap feel like something that
+            // happened to her rather than a state she was switched into. lil-cleo does
+            // the same thing for the same reason.
+            let rested = Date().timeIntervalSince(restStartedAt)
+            if rested > 14, LoafState.sleep.available {
+                engine.setAuto(.sleep)
+            }
+            if rested > Double.random(in: 30...50) {
                 beginStroll(seconds: Double.random(in: 20...40))
             }
         }
