@@ -60,6 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Being picked up
 
     var dragOrigin: NSPoint?
+    var dragMouseStart: NSPoint?
     var fallSpeed: CGFloat = 0
 
     /// One frame of a drag.
@@ -69,15 +70,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// thing happening to her, so she turns front-on and looks at you.
     func dragTo(_ translation: CGSize) {
         guard let window = characterWindow else { return }
+
+        // THE GESTURE'S TRANSLATION IS UNUSABLE HERE, and this is the actual cause of
+        // the flicker rather than the wander loop.
+        //
+        // SwiftUI's `.global` coordinate space on macOS is the WINDOW, not the screen.
+        // So moving the window in response to a translation changes what the next
+        // translation reports - the pointer has not moved relative to the window, so
+        // the translation collapses, so she snaps back, so it grows again. A feedback
+        // loop at gesture rate, which looks exactly like flicker.
+        //
+        // `NSEvent.mouseLocation` is in SCREEN coordinates and cannot feed back. The
+        // translation is now used only as a signal that a drag is in progress.
+        let mouse = NSEvent.mouseLocation
         if dragOrigin == nil {
             dragOrigin = window.frame.origin
+            dragMouseStart = mouse
             engine.held = true
             engine.jumpProgress = nil
             if engine.autopilot { engine.setAuto(.look) }
         }
-        guard let o = dragOrigin else { return }
-        // SwiftUI's height grows downward, AppKit's y grows upward.
-        let p = NSPoint(x: o.x + translation.width, y: o.y - translation.height)
+        guard let o = dragOrigin, let m0 = dragMouseStart else { return }
+        let p = NSPoint(x: o.x + (mouse.x - m0.x), y: o.y + (mouse.y - m0.y))
         window.setFrameOrigin(p)
         loafX = p.x
     }
@@ -85,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Let go. She falls back to the dock line rather than teleporting to it.
     func dropped() {
         dragOrigin = nil
+        dragMouseStart = nil
         engine.held = false
         fallSpeed = 0
         activity = .falling
