@@ -26,7 +26,8 @@ import catlib as L
 from catlib import PARTS, material, box
 from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K,
                        setup_viewport, face_collections, sprite_stage,
-                       face, render_to, SPRITES)
+                       face, render_to, SPRITES,
+                       build_face, FACE_PARTS, FACE_FRONT_DECALS, FACE_CHEEK_DECALS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BLEND = os.path.join(HERE, "cat_sit.blend")
@@ -80,36 +81,7 @@ def build_model():
     # never a white front panel.
     box("Bib", 0, -0.19, TORSO_Z + 0.06, 0.20, 0.14, 0.30, m_shade)
 
-    box("Head", 0, HEAD_Y, HEAD_Z, HEAD_W, HEAD_S, HEAD_S, m_fur)
-    for sx, sfx in ((-1, "L"), (1, "R")):
-        box("Cheek" + sfx, sx * (HEAD_W / 2 + 0.022), HEAD_Y - 0.015, HEAD_Z - 0.085,
-            0.05, 0.32, 0.20, m_fur)
-
-    # Same three-tier tapered ear as the standing build, scaled to this smaller head.
-    # No dark tip: a cap terminates the taper and each ear reads as a post instead of
-    # a triangle. Small inner, or it becomes the brightest thing on her head.
-    ear_z = HEAD_Z + HEAD_S / 2
-    for sx, sfx in ((-1, "L"), (1, "R")):
-        ex = sx * 0.20
-        box("Ear" + sfx,    ex, HEAD_Y - 0.04, ear_z + 0.027, 0.18, 0.12, 0.055, m_fur)
-        box("EarMid" + sfx, ex, HEAD_Y - 0.04, ear_z + 0.081, 0.13, 0.12, 0.055, m_fur)
-        box("EarTip" + sfx, ex, HEAD_Y - 0.04, ear_z + 0.125, 0.08, 0.12, 0.035, m_fur)
-        box("InEar" + sfx,  ex, HEAD_Y - 0.10, ear_z + 0.030, 0.08, 0.04, 0.045, m_ear)
-        box("InEarT" + sfx, ex, HEAD_Y - 0.10, ear_z + 0.081, 0.05, 0.04, 0.045, m_ear)
-
-    box("Muzzle", 0, MUZZLE_Y, HEAD_Z - 0.12, 0.23, 0.10, 0.11, m_eye)
-    box("Nose",   0, MUZZLE_Y - 0.06, HEAD_Z - 0.09, 0.08, 0.06, 0.055, m_nose)
-    # No mouth - every version of one read as a frown. See the standing build.
-
-    # Big round eyes with a vertical slit, not wide flat slabs. A wide flat eye reads
-    # as a narrowed one whatever the pupil does, and that was most of why she looked
-    # permanently annoyed.
-    box("EyeL", -0.125, FACE_Y - 0.02, HEAD_Z + 0.04, 0.15, 0.05, 0.145, m_eye)
-    box("EyeR",  0.125, FACE_Y - 0.02, HEAD_Z + 0.04, 0.15, 0.05, 0.145, m_eye)
-    box("PupL", -0.125, FACE_Y - 0.045, HEAD_Z + 0.04, 0.042, 0.05, 0.115, m_nose)
-    box("PupR",  0.125, FACE_Y - 0.045, HEAD_Z + 0.04, 0.042, 0.05, 0.115, m_nose)
-    box("EyeSideL", -CHEEK_X - 0.04, HEAD_Y - 0.09, HEAD_Z + 0.04, 0.05, 0.11, 0.11, m_eye)
-    box("EyeSideR",  CHEEK_X + 0.04, HEAD_Y - 0.09, HEAD_Z + 0.04, 0.05, 0.11, 0.11, m_eye)
+    build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_fur, m_eye, m_nose)
 
     # Front legs, set WIDE APART so the coat shows between them. They stay pale, to
     # match the standing build - what caused the nappy was the two of them meeting at
@@ -154,11 +126,7 @@ BONE_PARENT = {
 PART_BONE = {
     "root": ["Rump", "PawBL", "PawBR"],
     "spine": ["Torso", "Bib"],
-    "head": ["Head", "CheekL", "CheekR",
-             "EarL", "EarR", "EarMidL", "EarMidR", "EarTipL", "EarTipR",
-             "InEarL", "InEarR", "InEarTL", "InEarTR",
-             "Muzzle", "Nose",
-             "EyeL", "EyeR", "PupL", "PupR", "EyeSideL", "EyeSideR"],
+    "head": FACE_PARTS,
     "tailBase": ["Tail1"],
     "tailTip": ["Tail2", "Tail3"],
     "legFL": ["LegFL", "ToeFL"], "legFR": ["LegFR", "ToeFR"],
@@ -209,9 +177,8 @@ def show(names, visible):
         PARTS[n].hide_render = not visible
 
 
-FRONT_DECALS = ("EyeL", "EyeR", "PupL", "PupR",
-                "InEarL", "InEarR", "InEarTL", "InEarTR")
-CHEEK_DECALS = ("EyeSideL", "EyeSideR")
+FRONT_DECALS = FACE_FRONT_DECALS
+CHEEK_DECALS = FACE_CHEEK_DECALS
 
 
 # ----------------------------------------------------------------------------

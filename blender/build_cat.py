@@ -122,6 +122,113 @@ def wipe():
 
 
 # ----------------------------------------------------------------------------
+# THE FACE, ONCE.
+#
+# Every pose needs the same head, and the poses are separate builds because rigid legs
+# cannot fold. That combination is exactly how the standing and sitting cats drifted
+# apart twice before - the sit kept obsolete ears after only the stander was fixed, and
+# a whole face redesign had to be hand-transcribed into the sit with its own set of
+# scaled magic numbers. Three poses would have made that three copies.
+#
+# So the face lives here and every build calls it. Proportions are expressed as
+# fractions of the reference head (0.78 wide x 0.66 deep) and scaled, so a pose only
+# has to say how big its head is.
+FACE_REF_W = 0.78
+FACE_REF_S = 0.66
+
+
+def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k):
+    """Place the head and everything on it. Shared by every pose build.
+
+    `head_w` is the width (X) and `head_s` the depth and height (Y and Z). Width is
+    the free axis - X is invisible to the profile camera - which is why the front view
+    could be fixed without touching the walk.
+    """
+    kw = head_w / FACE_REF_W          # scale for anything measured across the face
+    k  = head_s / FACE_REF_S          # scale for anything measured up or back
+    face_y   = head_y - head_s / 2
+    muzzle_y = face_y - 0.04 * k
+    cheek_x  = head_w / 2
+
+    box("Head", 0, head_y, head_z, head_w, head_s, head_s, m_coat)
+
+    # Cheek flare. A cat's head head-on is round, widest across the cheeks, and a
+    # single box cannot give that. These sit inside the head's Y and Z envelope, so
+    # they widen the face without appearing in profile at all.
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        box("Cheek" + sfx, sx * (cheek_x + 0.03 * kw), head_y - 0.02 * k,
+            head_z - 0.11 * k, 0.07 * kw, 0.42 * k, 0.26 * k, m_coat)
+
+    # EARS ARE TRIANGLES - a three-tier taper, at the head's top CORNERS, ONE COLOUR.
+    #
+    # Both ear failures this project has had came from the same mistake: treating the
+    # ear as a block with a height instead of a shape with a taper. Tall narrow ears
+    # spaced wide apart read as a rabbit (twice). Narrow towers with dark caps read as
+    # horns - a dark cap terminates the taper, so the ear becomes a separate post
+    # instead of a triangle growing out of the head. Height is not what makes an ear
+    # read. The taper is.
+    ear_z = head_z + head_s / 2                                   # head's top plane
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        ex = sx * 0.26 * kw
+        box("Ear" + sfx,    ex, head_y - 0.05 * k, ear_z + 0.035 * k,
+            0.24 * kw, 0.15 * k, 0.07 * k, m_coat)
+        box("EarMid" + sfx, ex, head_y - 0.05 * k, ear_z + 0.105 * k,
+            0.17 * kw, 0.15 * k, 0.07 * k, m_coat)
+        box("EarTip" + sfx, ex, head_y - 0.05 * k, ear_z + 0.1625 * k,
+            0.10 * kw, 0.15 * k, 0.045 * k, m_coat)
+        # SMALL inner ear. Filling the ear made each one a pale mound, and being the
+        # brightest thing on her head it pulled the eye up to the ears, not the face.
+        box("InEar" + sfx,  ex, head_y - 0.125 * k, ear_z + 0.04 * k,
+            0.11 * kw, 0.05 * k, 0.06 * k, m_w)
+        box("InEarT" + sfx, ex, head_y - 0.125 * k, ear_z + 0.105 * k,
+            0.07 * kw, 0.05 * k, 0.06 * k, m_w)
+
+    # Muzzle PATCH, not a protruding snout, and WIDER THAN TALL - head-on a cat's
+    # muzzle is two whisker pads side by side, not a square.
+    box("Muzzle", 0, muzzle_y, head_z - 0.16 * k,
+        0.30 * kw, 0.10 * k, 0.15 * k, m_w)
+    box("Nose",   0, muzzle_y - 0.06 * k, head_z - 0.12 * k,
+        0.10 * kw, 0.06 * k, 0.07 * k, m_k)
+    # NO MOUTH. Every version tried here read as a frown - a "w" turned down at the
+    # corners worst of all, but even a straight bar is a dark line on a white patch,
+    # which is a grimace. Real cats barely show a mouth from the front. If a state
+    # ever needs one (a yawn, a meow) it belongs to THAT state, not to the base face
+    # that is on screen all day.
+
+    # Eyes: white sclera, black VERTICAL slit pupil - the most cat-specific feature
+    # available, and it does more species work per block than anything else here.
+    # BIG and TALLER THAN WIDE: a wide flat eye reads as a narrowed one whatever the
+    # pupil does, which is most of why she used to look permanently annoyed.
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        box("Eye" + sfx, sx * 0.165 * kw, face_y - 0.02 * k, head_z + 0.05 * k,
+            0.20 * kw, 0.05 * k, 0.19 * k, m_w)
+        box("Pup" + sfx, sx * 0.165 * kw, face_y - 0.045 * k, head_z + 0.05 * k,
+            0.055 * kw, 0.05 * k, 0.15 * k, m_k)
+    # Cheek set: the same eye glued to the head's X faces, for profile renders. A flat
+    # decal seen edge-on is a meaningless sliver, so only the set facing the camera is
+    # ever rendered.
+    for sx, sfx in ((-1, "L"), (1, "R")):
+        box("EyeSide" + sfx, sx * (cheek_x + 0.02), head_y - 0.15 * k,
+            head_z + 0.09 * k, 0.05, 0.18 * k, 0.11 * k, m_w)
+        box("PupSide" + sfx, sx * (cheek_x + 0.045), head_y - 0.15 * k,
+            head_z + 0.09 * k, 0.05, 0.045 * k, 0.11 * k, m_k)
+
+
+# Every part build_face() creates, so a pose's bone map can just splice this in
+# instead of listing them by hand and silently missing one.
+FACE_PARTS = (["Head", "CheekL", "CheekR",
+               "EarL", "EarR", "EarMidL", "EarMidR", "EarTipL", "EarTipR",
+               "InEarL", "InEarR", "InEarTL", "InEarTR",
+               "Muzzle", "Nose",
+               "EyeL", "EyeR", "PupL", "PupR",
+               "EyeSideL", "EyeSideR", "PupSideL", "PupSideR"])
+
+FACE_FRONT_DECALS = ("EyeL", "EyeR", "PupL", "PupR",
+                     "InEarL", "InEarR", "InEarTL", "InEarTR")
+FACE_CHEEK_DECALS = ("EyeSideL", "EyeSideR", "PupSideL", "PupSideR")
+
+
+# ----------------------------------------------------------------------------
 def build_model():
     m_coat  = material("Coat", COAT, rough=1.0)
     m_under = material("Under", UNDER, rough=1.0)
@@ -138,82 +245,7 @@ def build_model():
         0.09, m_under)
     box("Bib", 0, BODY_FRONT - 0.15, BODY_Z - 0.06, 0.26, 0.12, 0.32, m_under)
 
-    box("Head", 0, HEAD_Y, HEAD_Z, HEAD_W, HEAD_S, HEAD_S, m_coat)
-    # Cheek flare. A cat's head head-on is round, widest across the cheeks, and that
-    # curve is what a single box cannot give. These sit inside the head's Y and Z
-    # envelope, so they widen the face without appearing in profile at all.
-    for sx, sfx in ((-1, "L"), (1, "R")):
-        box("Cheek" + sfx, sx * (HEAD_W / 2 + 0.03), HEAD_Y - 0.02, HEAD_Z - 0.11,
-            0.07, 0.42, 0.26, m_coat)
-
-    # EARS ARE TRIANGLES, built as a three-tier voxel taper, and they sit at the head's
-    # top CORNERS so they extend the silhouette outward.
-    #
-    # The previous version was two narrow rectangular towers set inboard of the corners
-    # with dark caps, and it read unmistakably as horns. Both failures this project has
-    # had here (rabbit twice, now horns) came from the same mistake: treating the ear as
-    # a block with a height instead of a shape with a taper. Height is not what makes an
-    # ear read - the taper is.
-    #
-    # The whole taper is in X, and every tier keeps the same Y depth, so the profile
-    # silhouette is byte-identical to before. This is a front-view-only change.
-    # The ear is ONE COLOUR plus a pale inner triangle, and no dark tip.
-    #
-    # Black tips were in the committed palette, and head-on they were fatal: a dark cap
-    # terminates the taper, so each ear read as a separate dark-topped post rather than
-    # a triangle growing out of the head. Three colours stacked in a 0.19-tall shape is
-    # simply too much information at sprite size. The accent colour now lives only in
-    # her socks, which is also more honest for a ginger cat - black ear tips are a
-    # colourpoint marking, not a ginger one.
-    ear_z = HEAD_Z + HEAD_S / 2                                     # head's top plane
-    for sx, sfx in ((-1, "L"), (1, "R")):
-        ex = sx * 0.26
-        box("Ear" + sfx,    ex, HEAD_Y - 0.05, ear_z + 0.035, 0.24, 0.15, 0.07, m_coat)
-        box("EarMid" + sfx, ex, HEAD_Y - 0.05, ear_z + 0.105, 0.17, 0.15, 0.07, m_coat)
-        box("EarTip" + sfx, ex, HEAD_Y - 0.05, ear_z + 0.1625, 0.10, 0.15, 0.045, m_coat)
-        # SMALL inner ear. At 0.19 across it filled the ear and each one read as a pale
-        # mound - and being the brightest thing on her head it pulled the eye up to the
-        # ears instead of the face. The Veo reference (veo-output/) has a small muted
-        # inner on a coat-coloured ear, which is also what a real cat has.
-        box("InEar" + sfx,  ex, HEAD_Y - 0.125, ear_z + 0.04, 0.11, 0.05, 0.06, m_w)
-        box("InEarT" + sfx, ex, HEAD_Y - 0.125, ear_z + 0.105, 0.07, 0.05, 0.06, m_w)
-
-    # Contrasting muzzle PATCH, not a protruding snout. This is the single biggest
-    # thing the reference design had that the hand-built one didn't. Narrower than it
-    # was: at 0.30 across it dominated the lower face as a white slab.
-    # WIDER THAN TALL - a cat's muzzle head-on is two whisker pads side by side, not a
-    # square. At 0.24 x 0.19 it read as a snout or a gag.
-    box("Muzzle", 0, MUZZLE_Y, HEAD_Z - 0.16, 0.30, 0.10, 0.15, m_w)
-    box("Nose",   0, MUZZLE_Y - 0.06, HEAD_Z - 0.12, 0.10, 0.06, 0.07, m_k)
-    # NO MOUTH.
-    #
-    # Every version of a mouth tried here has read as a frown. A "w" turned down at the
-    # corners was the worst, but even a short straight bar is a dark horizontal line on
-    # a white patch, which is a grimace. Real cats barely have a visible mouth from the
-    # front - the nose sits almost on the lip line. Big eyes and a small nose do all the
-    # expression work, and leaving the mouth out costs nothing at sprite size.
-    #
-    # Kept as a named no-op rather than deleted so the reasoning survives: if a mouth is
-    # ever wanted for a specific state (a yawn, a meow), add it THERE, not to the base
-    # face where it is on screen all day.
-
-    # Eyes: white sclera, black VERTICAL pupil. The slit is the most cat-specific
-    # feature available - no other common pet has one - and it does more species work
-    # per block than anything else on the model.
-    #
-    # BIG and TALLER THAN WIDE. They used to be 0.18 wide by 0.11 tall, set high and
-    # far apart, which is the geometry of a scowl - a wide flat eye reads as a
-    # narrowed one no matter what the pupil does. Big round eyes low on the face are
-    # most of what separates "cute" from "angry" here, and being front decals they are
-    # hidden from the profile camera, so this costs the walk nothing.
-    box("EyeL", -0.165, FACE_Y - 0.02, HEAD_Z + 0.05, 0.20, 0.05, 0.19, m_w)
-    box("EyeR",  0.165, FACE_Y - 0.02, HEAD_Z + 0.05, 0.20, 0.05, 0.19, m_w)
-    box("PupL", -0.165, FACE_Y - 0.045, HEAD_Z + 0.05, 0.055, 0.05, 0.15, m_k)
-    box("PupR",  0.165, FACE_Y - 0.045, HEAD_Z + 0.05, 0.055, 0.05, 0.15, m_k)
-    box("EyeSideL", -CHEEK_X - 0.02, HEAD_Y - 0.15, HEAD_Z + 0.09, 0.05, 0.18, 0.11, m_w)
-    box("EyeSideR",  CHEEK_X + 0.02, HEAD_Y - 0.15, HEAD_Z + 0.09, 0.05, 0.18, 0.11, m_w)
-    box("PupSideL", -CHEEK_X - 0.045, HEAD_Y - 0.15, HEAD_Z + 0.09, 0.05, 0.045, 0.11, m_k)
-    box("PupSideR",  CHEEK_X + 0.045, HEAD_Y - 0.15, HEAD_Z + 0.09, 0.05, 0.045, 0.11, m_k)
+    build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_coat, m_w, m_k)
 
     # Tail stays BELOW the top of the head. It sits at x~0, dead centre between the
     # ears, so any taller and it pokes through the gap and reads as a third ear -
@@ -252,12 +284,7 @@ BONE_PARENT = {
 }
 PART_BONE = {
     "spine": ["Body", "Chest", "Belly", "Haunch", "Bib"],
-    "head": ["Head", "CheekL", "CheekR",
-             "EarL", "EarR", "EarMidL", "EarMidR", "EarTipL", "EarTipR",
-             "InEarL", "InEarR", "InEarTL", "InEarTR",
-             "Muzzle", "Nose",
-             "EyeL", "EyeR", "PupL", "PupR",
-             "EyeSideL", "EyeSideR", "PupSideL", "PupSideR"],
+    "head": FACE_PARTS,
     "tailBase": ["Tail1"],
     "tailMid": ["Tail2"],
     "tailTip": ["Tail3"],
@@ -489,9 +516,8 @@ def show(names, visible):
         PARTS[n].hide_render = not visible
 
 
-FRONT_DECALS = ("EyeL", "EyeR", "PupL", "PupR",
-                "InEarL", "InEarR", "InEarTL", "InEarTR")
-CHEEK_DECALS = ("EyeSideL", "EyeSideR", "PupSideL", "PupSideR")
+FRONT_DECALS = FACE_FRONT_DECALS
+CHEEK_DECALS = FACE_CHEEK_DECALS
 
 # ----------------------------------------------------------------------------
 WALK_FRAMES = 8                     # matches lil-cleo's WALK_FRAMES
