@@ -35,13 +35,23 @@ BLEND = os.path.join(HERE, "cat_sit.blend")
 # Silhouette target: a bell. Widest at the rump on the ground, tapering up through the
 # torso to a narrow head, with two straight front legs dropped down the centre and the
 # tail curled around the front. That taper is the whole reason a sit reads as a sit.
-RUMP_W   = 0.76     # each tier must be clearly narrower than the one below it, or the
-TORSO_W  = 0.60     # stack reads as a box tower instead of a cat
-HEAD_S   = 0.50
-HEAD_W   = 0.60     # wider than tall, for the same reason as the standing build
-RUMP_Z   = 0.21     # rump centre; sits flat on the ground
-TORSO_Z  = 0.65
-HEAD_Z   = 1.14
+# THE HEAD IS EXACTLY THE SAME SIZE AS WHEN SHE IS STANDING. She is the same cat.
+#
+# This was measured, not guessed. In front_idle the head is 55% of her total height;
+# here it used to be 39%, because the head was 0.50 against the stander's 0.66 AND
+# she was taller sitting than standing. She lost a quarter of her head the moment she
+# sat down, so the body dominated the silhouette instead of the head.
+#
+# An oversized head on a small body is the whole cute-quadruped trick - already this
+# project's most valuable proportion lesson - and it has to hold in EVERY pose.
+HEAD_S   = 0.66
+HEAD_W   = 0.78
+# The body compresses to make room, so she does not grow taller just by sitting.
+RUMP_W   = 0.70
+TORSO_W  = 0.54
+RUMP_Z   = 0.18     # rump centre; sits flat on the ground
+TORSO_Z  = 0.51
+HEAD_Z   = 0.99
 HEAD_Y   = -0.06
 FACE_Y   = HEAD_Y - HEAD_S / 2
 MUZZLE_Y = FACE_Y - 0.06
@@ -69,8 +79,8 @@ def build_model():
     m_ear   = m_eye
 
     # Rump: the folded back legs, read as one wide block resting on the ground.
-    box("Rump",  0, 0.14, RUMP_Z, RUMP_W, 0.54, 0.42, m_fur)
-    box("Torso", 0, 0.04, TORSO_Z, TORSO_W, 0.44, 0.58, m_fur)
+    box("Rump",  0, 0.14, RUMP_Z, RUMP_W, 0.54, 0.36, m_fur)
+    box("Torso", 0, 0.04, TORSO_Z, TORSO_W, 0.44, 0.42, m_fur)
     # NARROW chest bib that stops well clear of the legs.
     #
     # This block was 0.34 wide and 0.46 tall, and directly below it sat two pale front
@@ -79,19 +89,19 @@ def build_model():
     # failure class from the white build. It came straight back the moment the sit was
     # recoloured. A cat has a white BIB, a patch with coat visible on both sides of it,
     # never a white front panel.
-    box("Bib", 0, -0.19, TORSO_Z + 0.06, 0.20, 0.14, 0.30, m_shade)
+    box("Bib", 0, -0.19, TORSO_Z + 0.02, 0.19, 0.14, 0.26, m_shade)
 
     build_face(HEAD_W, HEAD_S, HEAD_Y, HEAD_Z, m_fur, m_eye, m_nose)
 
     # Front legs, set WIDE APART so the coat shows between them. They stay pale, to
     # match the standing build - what caused the nappy was the two of them meeting at
     # the centre line under a wide bib, not the colour itself.
-    for name, x in (("LegFL", -0.20), ("LegFR", 0.20)):
-        box(name, x, -0.30, 0.24, 0.19, 0.22, 0.48, m_shade)
-        box("Toe" + name[3:], x, -0.33, 0.09, 0.20, 0.28, 0.18, m_toe)
+    for name, x in (("LegFL", -0.18), ("LegFR", 0.18)):
+        box(name, x, -0.30, 0.20, 0.19, 0.22, 0.40, m_shade)
+        box("Toe" + name[3:], x, -0.33, 0.08, 0.20, 0.28, 0.16, m_toe)
     # Back paws peeking out beside the rump - without them the base reads as a plinth.
     # Kept clear of the front boots, or the whole base becomes one black bar.
-    for name, x in (("PawBL", -0.36), ("PawBR", 0.36)):
+    for name, x in (("PawBL", -0.33), ("PawBR", 0.33)):
         box(name, x, -0.10, 0.07, 0.18, 0.30, 0.14, m_toe)
 
     # Tail curled around the front, the way a sitting cat parks it over its own paws.
