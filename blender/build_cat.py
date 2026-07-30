@@ -250,6 +250,44 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k, eyes="open"):
             head_z + 0.05 * k, 0.05, 0.055 * k, 0.15 * k, m_k)
 
 
+def tail_curve(points, x, thick0, thick1, mat, prefix="Tail", step=0.075):
+    """Lay a tapering tail along a smooth curve, and return the part names.
+
+    `points` is a polyline in the (y, z) plane - the plane the profile camera sees.
+    It gets resampled at `step` and a cube dropped at every sample, so consecutive
+    cubes overlap and the chain reads as one rounded tube instead of a jointed arm.
+    Thickness eases from `thick0` at the base to `thick1` at the tip.
+
+    Three straight boxes were tried first and a wrapped tail needs to be genuinely
+    CURVED - it is the one part of a sleeping cat that is unmistakably cat, and a
+    straight bar along the floor reads as a stick lying next to her.
+
+    `x` is depth in profile, so it decides only what the tail draws in front of, never
+    where it lands on screen. Put it outside everything else on the camera side.
+    """
+    # Cumulative length, so the resample is even along the curve rather than bunching
+    # wherever the control points happen to be dense.
+    segs, total = [], 0.0
+    for (y0, z0), (y1, z1) in zip(points, points[1:]):
+        d = math.hypot(y1 - y0, z1 - z0)
+        segs.append(d); total += d
+
+    names, placed, i, walked = [], 0, 0, 0.0
+    n = max(1, int(total / step))
+    for j in range(n + 1):
+        want = total * j / n
+        while i < len(segs) - 1 and walked + segs[i] < want:
+            walked += segs[i]; i += 1
+        t = 0.0 if segs[i] == 0 else (want - walked) / segs[i]
+        y = points[i][0] + t * (points[i + 1][0] - points[i][0])
+        z = points[i][1] + t * (points[i + 1][1] - points[i][1])
+        th = thick0 + (thick1 - thick0) * (j / n)
+        name = f"{prefix}{placed}"
+        box(name, x, y, z, th, th, th, mat)
+        names.append(name); placed += 1
+    return names
+
+
 # Every part build_face() creates, so a pose's bone map can just splice this in
 # instead of listing them by hand and silently missing one.
 FACE_PARTS = (["Head", "CheekL", "CheekR",

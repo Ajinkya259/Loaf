@@ -36,7 +36,7 @@ from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import catlib as L
 from catlib import PARTS, material, box
-from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K,
+from build_cat import (COAT, UNDER, ACCENT, FACE_W, FACE_K, tail_curve,
                        setup_viewport, face_collections, sprite_stage,
                        face, render_to, SPRITES, SPRITE_UPP,
                        BODY_W, HEAD_S, HEAD_W,
@@ -69,7 +69,7 @@ HEAD_Y, HEAD_Z = -0.50, 0.74     # z 0.41..1.07
 TAIL_X = -0.45   # outside even the head (+-0.39) in X, and on the camera side
 
 # Measured after the first render.
-SLEEP_DX = -50 * SPRITE_UPP
+SLEEP_DX = -42 * SPRITE_UPP
 
 
 def wipe():
@@ -103,7 +103,10 @@ def build_model():
     # gap does not read as a neck - it reads as a hole punched through her, because at
     # sprite size a patch of background inside the silhouette is just a hole. A loafing
     # cat's chest does reach the ground; the head rests on top of it.
-    box("Chest", 0, -0.54, 0.21, BODY_W - 0.04, 0.34, 0.42, m_coat)
+    # Deep enough to MEET the mound. At 0.34 it stopped at y=-0.37 while the mound
+    # front had already pulled back to -0.26, leaving a slot of background between them
+    # at shoulder height - another hole punched through her.
+    box("Chest", 0, -0.50, 0.22, BODY_W - 0.04, 0.48, 0.44, m_coat)
 
     # Pale bib down the chest front. The only light note in the pose, and it has to sit
     # ABOVE the wrapped tail - anything pale at ground level here is simply drawn over.
@@ -112,20 +115,30 @@ def build_model():
     # NO LEGS AND NO PAWS. A visible leg turns a loaf into a crouch, and paws tucked at
     # ground level would be covered by the tail anyway.
 
-    # THE TAIL, wrapped round the front with the tip hooking up clear of her face.
+    # THE TAIL, wrapped right round her and tucked up in front of her chest.
     #
-    # Everything else here is one orange mass, so the tail is the only thing breaking
-    # the outline. It runs the length of her at ground level - where a wrapped tail
-    # physically goes - and most of that run is hidden behind her, correctly. What
-    # matters is the tip, which carries past her muzzle into empty space and hooks up.
+    # A wrapped tail is mostly BEHIND the body in profile, so almost all of this curve
+    # is correctly hidden. What has to read is the last third, arcing up through the
+    # open space in front of her chest and below her chin - which is exactly where a
+    # real loafing cat parks the tip.
     #
-    # It sits well BELOW the muzzle (z 0.505..0.655) on purpose. Being nearer the
-    # camera the tail draws over anything it shares screen space with, and an earlier
-    # version hooked up straight through her nose, which vanished.
-    box("Tail1", TAIL_X,  0.36, 0.075, 0.13, 0.48, 0.15, m_coat)
-    box("Tail2", TAIL_X, -0.12, 0.075, 0.13, 0.48, 0.15, m_coat)
-    box("Tail3", TAIL_X, -0.60, 0.075, 0.13, 0.48, 0.15, m_coat)
-    box("Tail4", TAIL_X, -0.90, 0.210, 0.13, 0.16, 0.24, m_coat)
+    # Laid along a RESAMPLED CURVE rather than as straight boxes. Three straight blocks
+    # were tried and a wrapped tail has to be genuinely round, or it reads as a stick
+    # lying next to her rather than as part of her.
+    #
+    # It stays clear of the muzzle (z 0.505 and up). Being nearer the camera the tail
+    # draws over anything it shares screen space with, and an earlier version hooked
+    # straight through her nose, which vanished.
+    TAIL_PATH = [
+        # The floor of this path is 0.072, not 0. A cube is placed ON each sample, so
+        # its bottom sits half a thickness lower - at z 0.03 the tail broke through
+        # z=0 and took the sprite's ground line from 24px to 14px.
+        ( 0.60, 0.26), ( 0.52, 0.16), ( 0.38, 0.10), ( 0.18, 0.078),
+        (-0.06, 0.072), (-0.30, 0.075), (-0.52, 0.09), (-0.70, 0.13),
+        (-0.84, 0.21), (-0.92, 0.31), (-0.93, 0.42),
+    ]
+    global TAIL_PARTS
+    TAIL_PARTS = tail_curve(TAIL_PATH, TAIL_X, 0.15, 0.10, m_coat)
 
 
 # ----------------------------------------------------------------------------
@@ -134,8 +147,8 @@ BONES = {
     "root":     ((0, 0.20, 0),               (0, 0.20, 0.16)),
     "spine":    ((0, 0.26, 0.20),            (0, -0.20, 0.44)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
-    "tailBase": ((TAIL_X,  0.60, 0.075),     (TAIL_X, -0.36, 0.075)),
-    "tailTip":  ((TAIL_X, -0.36, 0.075),     (TAIL_X, -0.95, 0.110)),
+    "tailBase": ((TAIL_X,  0.60, 0.26),      (TAIL_X, -0.06, 0.03)),
+    "tailTip":  ((TAIL_X, -0.06, 0.03),      (TAIL_X, -0.93, 0.42)),
 }
 BONE_PARENT = {"spine": "root", "head": "spine",
                "tailBase": "root", "tailTip": "tailBase"}
@@ -145,12 +158,22 @@ PART_BONE = {
     "root":  [f"Body{i}" for i in range(_WAIST)],
     "spine": [f"Body{i}" for i in range(_WAIST, len(MOUND))] + ["Chest", "Bib"],
     "head":  FACE_PARTS,
-    "tailBase": ["Tail1", "Tail2"],
-    "tailTip":  ["Tail3", "Tail4"],
+    # Filled in by build_armature(): the curve decides how many parts there are.
+    "tailBase": [],
+    "tailTip":  [],
 }
 
 
+TAIL_PARTS = []
+
+
 def build_armature():
+    # Split the resampled curve between the two tail bones, so a flick bends the tip
+    # without swinging the whole wrap.
+    half = len(TAIL_PARTS) // 2
+    PART_BONE["tailBase"] = TAIL_PARTS[:half]
+    PART_BONE["tailTip"] = TAIL_PARTS[half:]
+
     arm_data = bpy.data.armatures.new("CatRigSleep")
     arm = bpy.data.objects.new("LoafSleep", arm_data)
     bpy.context.scene.collection.objects.link(arm)
