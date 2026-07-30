@@ -127,6 +127,19 @@ underside, so a raw sprite in any viewer composites over white and reviews as a
 blank rectangle. This has already caused one false "the side view is gone?" alarm.
 Use `previews/contact_sheet.png`, which also catches states drifting out of sync.
 
+**Judge her at DISPLAY size, not render size — `previews/contact_small.png`.**
+The renders are 640×512; the app draws her at 160×128. That is a 4× downscale, and
+detail that looks fine on a full-size preview can disappear entirely on screen. A
+profile sit was passed as good on the big previews and was an unrecognisable blob in
+the app: its tail failed to clear her back line, which only matters once the fine
+detail is gone and the silhouette is all that is left.
+
+The corollary is a design rule, not just a review step: **at display size only the
+silhouette survives.** What makes the walking sprite work is the tail standing clear
+of the back, the gaps between the legs, and the step from head to shoulder — outline
+features, every one. Any pose that doesn't hold those reads as an orange blob no
+matter how correct its interior is.
+
 ---
 
 ## 4. The look — committed decisions
