@@ -100,12 +100,12 @@ def build_model():
     # The folded back foot, poking forward from under the rump. It leaves a clear gap to
     # the front boots, and that gap is the one piece of negative space this pose needs -
     # without it the whole underside is a solid bar and she reads as sitting on a plinth.
+    # TUCKED AGAINST THE HAUNCH, not out in front of it. Set forward at y=-0.02 with a
+    # dark toe cap of its own, the pair read at display size as a pale block and a dark
+    # block lying detached under her - dropped debris rather than a foot. The dark cap
+    # is gone and the paw now overlaps the haunch, so it reads as part of her.
     for sx, sfx in ((-1, "L"), (1, "R")):
-        box("PawB" + sfx, sx * 0.19, -0.02, 0.07, 0.23, 0.30, 0.14, m_under)
-        # z is half the height, not 0.07: at 0.07 with a 0.15 block the toe dropped
-        # 0.005 below z=0 and pushed the sprite's ground line from 24px to 22px, which
-        # would have made her sink 2px every time she sat down.
-        box("ToeB" + sfx, sx * 0.19, -0.14, 0.075, 0.24, 0.12, 0.15, m_acc)
+        box("PawB" + sfx, sx * 0.19, 0.08, 0.075, 0.23, 0.34, 0.15, m_under)
 
     # THE SAME HOOKED TAIL as the standing build, dropped to match the lowered rump.
     #
@@ -114,9 +114,18 @@ def build_model():
     # that made the tail invisible in this project's first ever render, and again on the
     # first attempt at this pose. Behind the rump is empty screen space, so it always
     # reads.
-    box("Tail1", 0, 0.62, 0.36, 0.13, 0.13, 0.46, m_coat)
-    box("Tail2", 0, 0.65, 0.68, 0.12, 0.14, 0.24, m_coat)
-    box("Tail3", 0, 0.51, 0.77, 0.12, 0.28, 0.12, m_coat)
+    # It has to RISE CLEAR OF THE BACK LINE. This is the single most identifying shape
+    # in her profile: in the walk the tail stands well above the back and hooks
+    # forward against empty background, and that read is most of why the walking
+    # sprite works at 160px.
+    #
+    # The first version of this pose topped the tail out at z 0.83 against a back at
+    # 0.82, so it merged straight into the body mass and the whole silhouette went
+    # amorphous. Judged at full render size it looked fine; at display size it was
+    # gone. Now it clears the back by 0.33, matching the standing pose's 0.38.
+    box("Tail1", 0, 0.62, 0.70, 0.13, 0.13, 0.50, m_coat)
+    box("Tail2", 0, 0.65, 1.02, 0.12, 0.14, 0.26, m_coat)
+    box("Tail3", 0, 0.51, 1.11, 0.12, 0.28, 0.12, m_coat)
 
 
 # ----------------------------------------------------------------------------
@@ -125,13 +134,13 @@ BONES = {
     "root":     ((0, HAUNCH_Y, 0),           (0, HAUNCH_Y, 0.16)),
     "spine":    ((0, HAUNCH_Y, HAUNCH_Z),    (0, CHEST_Y, CHEST_Z + 0.24)),
     "head":     ((0, HEAD_Y + 0.24, HEAD_Z), (0, HEAD_Y - HEAD_S / 2, HEAD_Z)),
-    "tailBase": ((0, 0.62, 0.14),            (0, 0.62, 0.58)),
-    "tailTip":  ((0, 0.62, 0.58),            (0, 0.51, 0.83)),
+    "tailBase": ((0, 0.62, 0.45),            (0, 0.62, 0.95)),
+    "tailTip":  ((0, 0.62, 0.95),            (0, 0.51, 1.17)),
 }
 BONE_PARENT = {"spine": "root", "head": "spine",
                "tailBase": "root", "tailTip": "tailBase"}
 PART_BONE = {
-    "root":  ["Haunch", "PawBL", "PawBR", "ToeBL", "ToeBR",
+    "root":  ["Haunch", "PawBL", "PawBR",
               "LegFL", "LegFR", "ToeFL", "ToeFR"],
     "spine": ["Body", "Belly", "Chest", "Bib"],
     "head":  FACE_PARTS,

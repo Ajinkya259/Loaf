@@ -24,3 +24,20 @@ magick previews/side_idle.png previews/front_idle.png \
        previews/sit.png \
        -background '#33333B' -gravity south +append previews/contact_sheet.png
 echo "previews/contact_sheet.png"
+
+# AT DISPLAY SIZE. The app draws her at 160x128, a 4x downscale from the 640x512
+# render, and detail that reads fine at full size can vanish completely there. A
+# profile sit was judged good on the big previews and was an unrecognisable blob on
+# screen - its tail failed to clear the back line, which only matters once the fine
+# detail is gone and the silhouette is all that is left.
+#
+# JUDGE HER HERE, NOT ON THE FULL-SIZE PREVIEWS.
+for f in "$SPRITES"/*.png; do
+    [ -f "$f" ] || continue
+    magick "$f" -background '#33333B' -alpha remove -alpha off \
+           -resize 160x128 -scale 200% "previews/small_$(basename "$f")"
+done
+magick previews/small_side_idle.png previews/small_walk3.png \
+       previews/small_sit_side.png previews/small_sit.png previews/small_front_idle.png \
+       -background '#33333B' -gravity south +append previews/contact_small.png
+echo "previews/contact_small.png   <- judge her here"
