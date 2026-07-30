@@ -15,12 +15,56 @@ Derived from `ref/lil-cleo`, which already solved this for a shipped desktop pet
 |---|---|
 | Resolution | **640 × 512** |
 | Format | PNG, RGBA, transparent background |
-| Ortho scale | 2.6 world units across the 640px width |
-| Camera | fixed at `(0, -9, 0.94)`, rotated `(90°, 0, 0)` — **never moves** |
-| Ground line | world `z = 0`, which lands ~25px above the bottom edge |
+| Ortho scale | 2.3 world units across the 640px width |
+| Camera | fixed at `(0, -9, 0.83)`, rotated `(90°, 0, 0)` — **never moves** |
+| Ground line | world `z = 0`, measured at **24px** above the bottom edge |
 | Anchor | **bottom-centre** |
 
 Every state renders through these exact numbers (`SPRITE_*` in `blender/build_cat.py`).
+
+App-side constants that follow from them:
+
+```
+footInset = windowHeight * 24/512  (= 0.046875)   feet above the window's bottom edge
+aspect    = 640:512 = 5:4                         the window must preserve this
+```
+
+### Measured, not assumed
+
+Both findings below came from measuring the actual PNGs
+(`magick <f>.png -format "%@" info:`). Re-run that after any geometry change — the
+numbers in this table were wrong for a while and nothing caught it.
+
+**The ground line is 24px on every state.** `side_idle`, `front_idle`, `sit` and walk
+frames 1 and 5 agree exactly.
+
+**The profile is recentred in Blender, not in the app.** The model is deliberately
+asymmetric about its own Y axis (the head projects forward of the body), so rotating
+it into profile put the silhouette **+62px right of canvas centre** (`side_idle` +64,
+walk frames +49.5…+69.5) while the front views sat dead on 320. That is a real bug,
+not a cosmetic one: the app anchors bottom-centre and mirrors with
+`scaleEffect(x: -1)` about the window centre, so an off-centre profile would teleport
+her **~124px sideways every time she turned around**. `SPRITE_SIDE_DX` cancels it,
+applied in world X for **side renders only** — it cannot be baked into the model,
+because in the front view world X *is* screen X and the same shift would knock the
+front views off centre instead. After the fix the profile sits within ±12px of centre
+and `front_idle` is unchanged at exactly 320.0.
+
+### Open item — the walk dips below the ground line
+
+| frame | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| gap above bottom edge | **24** | 15 | 15 | 15 | **24** | 15 | 15 | 15 |
+
+Frames 1 and 5 are the only two where `sin(phase) = 0` — the only frames with the legs
+vertical. Every swung frame sits **9px below the ground line**, because a foot block
+rotating about a hip pivot swings its trailing corner under the ground plane.
+
+Not fixed, and not to be described as a feature: it is a 9px *step*, not a smooth arc,
+and a step is what reads as a glitch. At the default 128pt window it is 2.25pt and
+probably invisible; at larger scales it will not be. Same root cause as the known
+"the walk is a pendulum, not a walk" problem — rigid single-segment legs. Judge it on
+screen before spending renders on it.
 
 **Why the camera never moves.** Ported from lil-cleo's `render_states.py`. A fixed camera
 plus a character that rotates is the only way to guarantee identical scale and an
