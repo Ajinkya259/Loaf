@@ -10,5 +10,6 @@ cd "$(dirname "$0")/.."
 B=/Applications/Blender.app/Contents/MacOS/Blender
 "$B" -b -P blender/build_cat.py     2>&1 | grep -E "RENDERED|Error" || true
 "$B" -b -P blender/build_cat_sit.py 2>&1 | grep -E "RENDERED|Error" || true
+"$B" -b -P blender/build_cat_sit_side.py 2>&1 | grep -E "RENDERED|Error" || true
 blender/make_previews.sh
 echo "--- sprites ---"; ls Sources/Loaf/Resources/sprites/

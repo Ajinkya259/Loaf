@@ -440,7 +440,7 @@ def sprite_stage():
     return cam
 
 
-def face(arm, side):
+def face(arm, side, dx=None):
     """Turn the character, never the camera.
 
     Loaf's front is -Y and camera-right is +X, so +90 degrees about Z puts her in
@@ -453,7 +453,10 @@ def face(arm, side):
     is screen X, so the same shift would knock the front views off centre.
     """
     arm.rotation_euler[2] = math.radians(90 if side else 0)
-    arm.location[0] = SPRITE_SIDE_DX if side else 0.0
+    # `dx` overrides the recentring shift. SPRITE_SIDE_DX was measured on the STANDING
+    # profile, and a different pose has a different silhouette, so a pose that lands
+    # outside +-12px of centre needs its own measured value rather than this one.
+    arm.location[0] = (SPRITE_SIDE_DX if dx is None else dx) if side else 0.0
 
 
 def render_to(path):
