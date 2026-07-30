@@ -137,12 +137,17 @@ FACE_REF_W = 0.78
 FACE_REF_S = 0.66
 
 
-def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k):
+def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k, eyes="open"):
     """Place the head and everything on it. Shared by every pose build.
 
     `head_w` is the width (X) and `head_s` the depth and height (Y and Z). Width is
     the free axis - X is invisible to the profile camera - which is why the front view
     could be fixed without touching the walk.
+
+    `eyes="closed"` swaps the open eye for a dark curved lid, for sleeping poses. It
+    is not a detail: a low curled body still reads as a cat resting, and closed eyes
+    are what make it read as a cat ASLEEP. The lid keeps the open eye's width and
+    vertical centre so she does not appear to squint or shift her gaze between states.
     """
     kw = head_w / FACE_REF_W          # scale for anything measured across the face
     k  = head_s / FACE_REF_S          # scale for anything measured up or back
@@ -200,6 +205,14 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k):
     # BIG and TALLER THAN WIDE: a wide flat eye reads as a narrowed one whatever the
     # pupil does, which is most of why she used to look permanently annoyed.
     for sx, sfx in ((-1, "L"), (1, "R")):
+        if eyes == "closed":
+            # A shut lid: a dark bar the width of the open eye, with a shorter one
+            # below the outer half, so it reads as a curve rather than a dash.
+            box("Eye" + sfx, sx * 0.165 * kw, face_y - 0.02 * k, head_z + 0.05 * k,
+                0.20 * kw, 0.05 * k, 0.045 * k, m_k)
+            box("Pup" + sfx, sx * 0.20 * kw, face_y - 0.02 * k, head_z + 0.015 * k,
+                0.10 * kw, 0.05 * k, 0.045 * k, m_k)
+            continue
         box("Eye" + sfx, sx * 0.165 * kw, face_y - 0.02 * k, head_z + 0.05 * k,
             0.20 * kw, 0.05 * k, 0.19 * k, m_w)
         box("Pup" + sfx, sx * 0.165 * kw, face_y - 0.045 * k, head_z + 0.05 * k,
@@ -225,6 +238,12 @@ def build_face(head_w, head_s, head_y, head_z, m_coat, m_w, m_k):
     # half. Pushing the decals out costs nothing: in profile X only decides what is in
     # front of what, never where anything lands on screen.
     for sx, sfx in ((-1, "L"), (1, "R")):
+        if eyes == "closed":
+            box("EyeSide" + sfx, sx * (cheek_x + 0.10 * kw), head_y - 0.13 * k,
+                head_z + 0.05 * k, 0.05, 0.20 * k, 0.045 * k, m_k)
+            box("PupSide" + sfx, sx * (cheek_x + 0.125 * kw), head_y - 0.19 * k,
+                head_z + 0.015 * k, 0.05, 0.10 * k, 0.045 * k, m_k)
+            continue
         box("EyeSide" + sfx, sx * (cheek_x + 0.10 * kw), head_y - 0.13 * k,
             head_z + 0.05 * k, 0.05, 0.20 * k, 0.19 * k, m_w)
         box("PupSide" + sfx, sx * (cheek_x + 0.125 * kw), head_y - 0.15 * k,
