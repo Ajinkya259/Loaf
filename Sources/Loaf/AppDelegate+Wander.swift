@@ -50,8 +50,10 @@ extension AppDelegate {
                 activity = .resting
                 restStartedAt = Date()
                 restCorner = (cornerTargetX <= minX + 1) ? -1 : 1
-                engine.facing = 1
-                engine.setAuto(.sit)
+                // The PROFILE sit, not the front one. She arrives here walking in
+                // profile, and swinging 90 degrees to face the camera just to sit
+                // down is something nothing alive does.
+                engine.setAuto(.sitSide)
             }
 
         case .resting:

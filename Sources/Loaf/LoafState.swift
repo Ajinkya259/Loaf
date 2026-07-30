@@ -16,6 +16,7 @@ enum LoafState: String, CaseIterable, Identifiable {
     case walk           // 8-frame cycle, profile
     case look           // standing, turned to face you
     case sit            // sitting, front
+    case sitSide        // sitting, profile — the same angle she walks in
 
     // Planned. See CLAUDE.md §6. No art yet; the menu disables these.
     case sleep          // curled up — needs its own build, a rig can't fold her flat
@@ -36,8 +37,9 @@ enum LoafState: String, CaseIterable, Identifiable {
     /// side has to adopt the other's naming.
     var sprite: String {
         switch self {
-        case .idle: "side_idle"
-        case .look: "front_idle"
+        case .idle:    "side_idle"
+        case .look:    "front_idle"
+        case .sitSide: "sit_side"
         default:    rawValue
         }
     }
@@ -47,7 +49,8 @@ enum LoafState: String, CaseIterable, Identifiable {
         case .idle:     "Idle"
         case .walk:     "Walk"
         case .look:     "Look at me"
-        case .sit:      "Sit"
+        case .sit:      "Sit (front)"
+        case .sitSide:  "Sit (side)"
         case .sleep:    "Sleep"
         case .chill:    "Chill"
         case .chonk:    "Chonk"
@@ -58,11 +61,18 @@ enum LoafState: String, CaseIterable, Identifiable {
 
     /// True if this state is drawn in profile.
     ///
-    /// **Profile is for locomotion, front is for personality** — lil-cleo's rule and
-    /// now ours. It is not a stylistic split: the bell taper that makes a sit read
-    /// lives in the width axis, which a side camera cannot see, so a sit rendered in
-    /// profile reads as a marmot. See SPRITE_CONTRACT.md §2.
-    var isProfile: Bool { self == .idle || self == .walk }
+    /// **Profile is for locomotion, front is for personality** — lil-cleo's rule, and
+    /// mostly ours. `sitSide` is the deliberate exception: she arrives at a corner
+    /// walking in profile, and turning 90° to face the camera just to sit down is
+    /// something nothing alive does.
+    ///
+    /// That exception only exists because it got its own geometry. The rule was
+    /// originally written from a failed attempt to render the *front* sit sideways,
+    /// which read as a marmot — the bell taper that makes that pose work lives in the
+    /// width axis, exactly what a side camera cannot see. The real lesson was
+    /// "front-designed geometry doesn't survive profile", not "a sit can't be shown in
+    /// profile". See SPRITE_CONTRACT.md §2.
+    var isProfile: Bool { self == .idle || self == .walk || self == .sitSide }
 
     /// Locomotion states travel, so the wander loop moves the window under them.
     /// Everything else plays in place.
