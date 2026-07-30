@@ -56,6 +56,9 @@ extension AppDelegate {
                 engine.setAuto(.sitSide)
             }
 
+        case .jumping:
+            stepJump(y: y, minX: minX, maxX: maxX)
+
         case .resting:
             // Sit a while, then drift off, then eventually get up and stroll again.
             //
@@ -70,6 +73,48 @@ extension AppDelegate {
                 beginStroll(seconds: Double.random(in: 20...40))
             }
         }
+    }
+
+    // MARK: The jump
+
+    /// Launch a jump in the direction she's facing, clamped so she can't leap off the
+    /// band she paces. Too close to an edge and she turns round and jumps back.
+    func startJump() {
+        guard let screen = NSScreen.main else { return }
+        let s = CGFloat(settings.scale)
+        let (minX, maxX) = walkBounds(screen: screen, width: charSize.width)
+        var dir = engine.facing
+        let reach = AppDelegate.jumpLength * s
+        if loafX + dir * reach > maxX || loafX + dir * reach < minX { dir = -dir }
+        engine.facing = dir
+        jumpFromX = loafX
+        jumpDX = min(max(dir * reach, minX - loafX), maxX - loafX)
+        jumpStartedAt = Date()
+        engine.jumpProgress = 0
+        engine.setAuto(.jump)
+        activity = .jumping
+    }
+
+    /// One frame of the arc.
+    ///
+    /// Horizontal is linear and vertical is `4h·t·(1-t)` — the parabola through
+    /// (0,0), peaking at h halfway, back to 0 at the end. Doing it in closed form
+    /// rather than integrating a velocity means she lands EXACTLY where and when she
+    /// should, however irregular the timer ticks are.
+    func stepJump(y: CGFloat, minX: CGFloat, maxX: CGFloat) {
+        let s = CGFloat(settings.scale)
+        let t = Date().timeIntervalSince(jumpStartedAt) / AppDelegate.jumpDuration
+        if t >= 1 {
+            engine.jumpProgress = nil
+            place(min(max(jumpFromX + jumpDX, minX), maxX), y)
+            beginStroll(seconds: Double.random(in: 12...30))
+            return
+        }
+        engine.jumpProgress = t
+        let p = CGFloat(t)
+        let lift = 4 * AppDelegate.jumpHeight * s * p * (1 - p)
+        loafX = jumpFromX + jumpDX * p
+        characterWindow.setFrameOrigin(NSPoint(x: loafX.rounded(), y: y + lift))
     }
 
     /// Start a stroll lasting `seconds`, after which she heads for a corner.
@@ -90,6 +135,8 @@ extension AppDelegate {
             strollTargetX = nil
             engine.setAuto(.idle)
             // Usually a short pause; occasionally a longer "noticed something" stand.
+            // Now and then, hop to the next spot instead of walking to it.
+            if Int.random(in: 0..<7) == 0 { startJump(); return }
             dwellUntil = Date().addingTimeInterval(
                 Int.random(in: 0..<6) == 0 ? Double.random(in: 3.5...6.0)
                                            : Double.random(in: 0.7...2.6))

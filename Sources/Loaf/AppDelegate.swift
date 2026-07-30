@@ -54,7 +54,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var cornerTargetX: CGFloat = 0
     var restStartedAt = Date()
 
-    enum Activity { case strolling, toCorner, resting }
+    enum Activity { case strolling, toCorner, resting, jumping }
+
+    // MARK: The jump
+
+    /// How far she travels, how high she gets, and how long it takes - at scale 1.
+    ///
+    /// These are the numbers that decide whether a jump feels natural, which is why
+    /// they live here and not in the art: the sprites carry the pose, the app carries
+    /// the parabola. 140pt is about 1.2 of her body lengths, which is a confident hop
+    /// rather than a pounce - a real cat clears several body lengths, but on a dock
+    /// that overshoots the screen and reads as a glitch. Height is 0.4 of the length,
+    /// the ratio that keeps an arc looking like a jump instead of a skip or a lob.
+    static let jumpLength: CGFloat = 140
+    static let jumpHeight: CGFloat = 55
+    static let jumpDuration: TimeInterval = 0.55
+
+    var jumpStartedAt = Date.distantPast
+    var jumpFromX: CGFloat = 0
+    var jumpDX: CGFloat = 0
 
     /// Points per frame at 50Hz — about 55pt/s at scale 1. lil-cleo's number. Whether
     /// it matches her stride (and so whether she moonwalks) is a thing to judge on
@@ -72,7 +90,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // verified with a screenshot instead of nine menu clicks.
         if let raw = ProcessInfo.processInfo.environment["LOAF_STATE"],
            let s = LoafState(rawValue: raw) {
-            engine.pin(s)
+            // A one-shot can't be pinned, so the hook has to PLAY it - on a loop, so
+            // there is something to watch for longer than half a second.
+            if s.isOneShot {
+                startWandering()
+                startJump()
+                Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+                    MainActor.assumeIsolated { self?.startJump() }
+                }
+            } else {
+                engine.pin(s)
+            }
         } else if settings.wanders {
             beginStroll(seconds: Double.random(in: 20...40))
             startWandering()
@@ -154,6 +182,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func pickState(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String,
               let s = LoafState(rawValue: raw) else { return }
+        // A one-shot PLAYS; it is not held. Pinning a jump would freeze her mid-air.
+        if s.isOneShot {
+            engine.pin(nil)
+            if wanderTimer == nil { startWandering() }
+            startJump()
+            return
+        }
         // Face right while pinned. A mirrored sprite is a fine thing to *test*, but a
         // confusing default when you're trying to look at her.
         engine.facing = 1

@@ -21,6 +21,13 @@ final class CatEngine: ObservableObject {
     /// A state you chose by hand, or nil when she's running herself.
     @Published private(set) var pinned: LoafState?
 
+    /// How far through a jump she is, 0…1, or nil when she isn't jumping.
+    ///
+    /// The frame AND the trajectory both read this one value, which is the point: a
+    /// jump driven by a wall clock and an arc driven by a separate timer drift apart,
+    /// and then she lands two frames after her feet touch down.
+    @Published var jumpProgress: Double?
+
     /// True when the wander loop is allowed to drive.
     var autopilot: Bool { pinned == nil }
 
