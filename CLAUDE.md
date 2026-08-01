@@ -98,6 +98,8 @@ Sources/Loaf/
   MoodMarks.swift      the "z"s and the "!" drawn above her
   Snapshot.swift       LOAF_SNAPSHOT — rasterise the real view to a PNG
   MenuBarIcon.swift    the drawn paw template image for the menu-bar item
+  PawDropView.swift    the manual "Paw" gesture — not a LoafState, a separate
+                       overlay window, drawn code-side rather than Blender
   Resources/sprites/<weight>/   ← Blender renders STRAIGHT INTO HERE (§3, §5)
 
 SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either side.

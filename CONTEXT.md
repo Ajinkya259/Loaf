@@ -32,6 +32,9 @@ blender/build_all.sh                            # re-render all 72 sprites (~3 m
 
 Dock stroll → dwell → corner sit → sleep. Jumps (about one stroll leg in seven).
 Draggable — picking her up wakes her, and she falls back to the dock when dropped.
+**Paw** in the menu is a manual gesture — a big version of the menu-bar icon drops
+down and gives a double pat, `PawDropView.swift`. Not a reaction to anything yet;
+just the motion, validated first in `paw-drop-study.html`.
 
 **Eight states × three weights = 72 sprites.** idle, walk, jump, sit (front), sit
 (profile), sleep, stressed, look.

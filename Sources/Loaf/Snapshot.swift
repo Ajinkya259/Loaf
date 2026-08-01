@@ -37,4 +37,36 @@ enum Snapshot {
               let png = rep.representation(using: .png, properties: [:]) else { return false }
         do { try png.write(to: URL(fileURLWithPath: path)); return true } catch { return false }
     }
+
+    /// Same idea, for the paw-drop gesture (`PawDropView.swift`), which isn't a
+    /// `LoafState` and so isn't covered by `render(state:to:)` at all.
+    ///
+    ///     LOAF_PAW_SNAPSHOT=/tmp/p.png LOAF_PAW_T=0.55 swift run Loaf
+    ///
+    /// `elapsed` is real wall-clock time: `trigger()` starts the gesture for real,
+    /// then this thread sleeps before capturing, so `TimelineView` reads the same
+    /// clock it would in the running app rather than a faked-up state.
+    static func renderPawDrop(elapsed: TimeInterval, to path: String) -> Bool {
+        let engine = PawDropEngine()
+        engine.trigger()
+        if elapsed > 0 { Thread.sleep(forTimeInterval: elapsed) }
+
+        let w = PawDropView.pawSize + 60, h = PawDropView.reach + PawDropView.pawSize + 20
+        let view = ZStack {
+            HStack(spacing: 0) {
+                Color.white
+                Color(red: 0.13, green: 0.13, blue: 0.16)
+            }
+            PawDropView(engine: engine)
+        }
+        .frame(width: w, height: h)
+
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 3
+        guard let img = renderer.nsImage,
+              let tiff = img.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let png = rep.representation(using: .png, properties: [:]) else { return false }
+        do { try png.write(to: URL(fileURLWithPath: path)); return true } catch { return false }
+    }
 }

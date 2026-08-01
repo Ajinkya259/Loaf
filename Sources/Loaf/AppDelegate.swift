@@ -14,9 +14,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let settings = Settings()
     let engine = CatEngine()
     lazy var systemMonitor = SystemMonitor()
+    let pawDropEngine = PawDropEngine()
 
     var characterWindow: CharacterWindow!
     var statusItem: NSStatusItem!
+    var pawDropWindow: NSWindow!
 
     // MARK: Geometry
 
@@ -134,6 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         setupCharacterWindow()
+        setupPawDropWindow()
 
         // Test hook, mirroring lil-cleo's CLEO_ACTION: `LOAF_STATE=sit swift run Loaf`
         // holds one state centred with no wandering. This is how each state gets
@@ -220,6 +223,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
 
+        // Not a LoafState: this doesn't touch her body or pose at all, it's a
+        // separate overlay (PawDropView.swift) layered above whatever she's
+        // already doing. One-shot, like Jump, but its own thing rather than
+        // folded into the state list.
+        let paw = NSMenuItem(title: "Paw", action: #selector(pickPawDrop), keyEquivalent: "")
+        paw.target = self
+        menu.addItem(paw)
+
         menu.addItem(.separator())
         let weightMenu = NSMenu()
         for (name, id) in Settings.weights {
@@ -295,6 +306,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         engine.pin(s)
     }
 
+    @objc private func pickPawDrop() {
+        pawDropEngine.trigger()
+    }
+
     @objc private func pickLayer(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         settings.layer = id
@@ -347,6 +362,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         characterWindow = window
 
         positionAtDock()
+        window.orderFrontRegardless()
+    }
+
+    /// A second, small window for the paw-drop gesture (`PawDropView.swift`).
+    ///
+    /// Always ordered front, like `characterWindow` — the SwiftUI content
+    /// simply draws nothing while `pawDropEngine.startedAt` is nil, so there
+    /// is no show/hide to keep in sync with the animation's own timer.
+    /// Ignores mouse events: nothing is wired up to click yet.
+    private func setupPawDropWindow() {
+        guard let screen = NSScreen.main else { return }
+        let w = PawDropView.pawSize + 60
+        let h = PawDropView.reach + PawDropView.pawSize + 20
+        // Best-effort: sits under the real status item if AppKit has already
+        // given it a window frame by now, otherwise a guess near the top
+        // right, where a status item usually lands. Not exact, and doesn't
+        // need to be — this is a decorative gesture, not a sprite anchor.
+        let iconX = statusItem.button?.window?.frame.midX ?? (screen.frame.maxX - 60)
+        let menuBarHeight = NSStatusBar.system.thickness
+        let window = NSWindow(
+            contentRect: NSRect(x: iconX - w / 2, y: screen.frame.maxY - menuBarHeight - h,
+                                width: w, height: h),
+            styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.level = .statusBar
+        window.ignoresMouseEvents = true
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
+        window.contentView = NSHostingView(rootView: PawDropView(engine: pawDropEngine))
+        pawDropWindow = window
         window.orderFrontRegardless()
     }
 

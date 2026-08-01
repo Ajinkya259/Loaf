@@ -16,6 +16,15 @@ if let out = ProcessInfo.processInfo.environment["LOAF_SNAPSHOT"] {
     exit(ok ? 0 : 1)
 }
 
+// LOAF_PAW_SNAPSHOT=/tmp/p.png [LOAF_PAW_T=0.55] captures the paw-drop gesture at a
+// given elapsed second, since it isn't a LoafState and LOAF_SNAPSHOT doesn't cover it.
+if let out = ProcessInfo.processInfo.environment["LOAF_PAW_SNAPSHOT"] {
+    let t = Double(ProcessInfo.processInfo.environment["LOAF_PAW_T"] ?? "") ?? 0.55
+    let ok = MainActor.assumeIsolated { Snapshot.renderPawDrop(elapsed: t, to: out) }
+    FileHandle.standardError.write(Data((ok ? "wrote \(out)\n" : "snapshot failed\n").utf8))
+    exit(ok ? 0 : 1)
+}
+
 // LOAF_ICON=/tmp/paw.png dumps the menu-bar icon, magnified, so it can actually be
 // looked at - a template image is invisible to a normal screenshot of the menu bar.
 if let out = ProcessInfo.processInfo.environment["LOAF_ICON"] {
