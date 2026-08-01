@@ -148,13 +148,20 @@ struct PawDropView: View {
     }
 }
 
-/// Pad + four toes, same literal numbers as `MenuBarIcon.paw()`.
+/// Pad + four toes, same literal numbers as `MenuBarIcon.paw()` — but NOT
+/// flipped the way that icon's SVG port needed to be.
 ///
-/// AppKit's `NSBezierPath` there is y-up from the bottom-left; SwiftUI's
-/// `Path` is y-down from the top-left, so every rect is flipped through one
-/// formula (`newY = box - y - height`) rather than hand-converted — a
-/// hand-converted copy of this exact shape was wrong once already, in
-/// paw-drop-study.html's menu-bar icon.
+/// The menu-bar icon is a static print glyph: toes fan out ABOVE the pad, as
+/// if looking down at a paw print stamped on the ground, and getting that
+/// upright needed a y-flip (paw-drop-study.html's icon was upside-down until
+/// one was added). This shape is a different thing — a limb reaching down —
+/// and the anatomy that goes WITH the arm is the opposite: the pad attaches
+/// near the wrist, and the toes lead at the tip. AppKit's numbers already
+/// put the pad at a lower y than the toes, which is exactly "pad first"
+/// once used directly with no flip. Adding the same flip here anyway (copied
+/// from the icon without re-deriving which orientation this shape actually
+/// needs) put the toes next to the arm and the pad at the tip - a paw
+/// attached backwards.
 private struct PawShape: Shape {
     private static let box: CGFloat = 18
     private static let pad = CGRect(x: 3.1, y: 1.5, width: 11.8, height: 7.6)
@@ -167,12 +174,12 @@ private struct PawShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         let s = rect.width / Self.box
-        func flip(_ r: CGRect) -> CGRect {
-            CGRect(x: r.minX * s, y: (Self.box - r.maxY) * s, width: r.width * s, height: r.height * s)
+        func scale(_ r: CGRect) -> CGRect {
+            CGRect(x: r.minX * s, y: r.minY * s, width: r.width * s, height: r.height * s)
         }
         var p = Path()
-        p.addRoundedRect(in: flip(Self.pad), cornerSize: CGSize(width: 3.4 * s, height: 3.0 * s))
-        for toe in Self.toes { p.addEllipse(in: flip(toe)) }
+        p.addRoundedRect(in: scale(Self.pad), cornerSize: CGSize(width: 3.4 * s, height: 3.0 * s))
+        for toe in Self.toes { p.addEllipse(in: scale(toe)) }
         return p
     }
 }
