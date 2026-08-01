@@ -50,11 +50,12 @@ struct PawDropView: View {
     @ObservedObject var engine: PawDropEngine
 
     /// How far she reaches down from the bar, and how big the paw is at the
-    /// end of it. Modest on purpose — this bats at the desktop, it doesn't
-    /// cover it.
-    static let reach: CGFloat = 190
-    static let pawSize: CGFloat = 92
-    static let armWidth: CGFloat = 28
+    /// end of it. Small on purpose — a cute tap at the desktop, not a hand
+    /// covering it. First pass at 92pt/190pt read as oversized once it was
+    /// actually visible; scaled to roughly her own head size instead.
+    static let reach: CGFloat = 80
+    static let pawSize: CGFloat = 36
+    static let armWidth: CGFloat = 10
 
     /// The window this view lives in has to be this size always, not sized
     /// to fit. AppDelegate uses the same numbers when it creates that window.
@@ -67,8 +68,8 @@ struct PawDropView: View {
                 let down = Self.downness(at: t)
                 let rot = Self.patRotation(at: t)
                 ZStack(alignment: .top) {
-                    UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 12,
-                                           bottomTrailingRadius: 12, topTrailingRadius: 0)
+                    UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: Self.armWidth / 2,
+                                           bottomTrailingRadius: Self.armWidth / 2, topTrailingRadius: 0)
                         .fill(.white)
                         .frame(width: Self.armWidth, height: Self.reach)
                     PawShape()
