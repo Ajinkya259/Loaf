@@ -307,6 +307,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func pickPawDrop() {
+        if ProcessInfo.processInfo.environment["LOAF_DEBUG"] != nil {
+            FileHandle.standardError.write(Data("menu: paw clicked, startedAt was \(String(describing: pawDropEngine.startedAt))\n".utf8))
+        }
+        repositionPawDropWindow()
         pawDropEngine.trigger()
     }
 
@@ -373,17 +377,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Ignores mouse events: nothing is wired up to click yet.
     private func setupPawDropWindow() {
         guard let screen = NSScreen.main else { return }
-        let w = PawDropView.pawSize + 60
-        let h = PawDropView.reach + PawDropView.pawSize + 20
-        // Best-effort: sits under the real status item if AppKit has already
-        // given it a window frame by now, otherwise a guess near the top
-        // right, where a status item usually lands. Not exact, and doesn't
-        // need to be — this is a decorative gesture, not a sprite anchor.
-        let iconX = statusItem.button?.window?.frame.midX ?? (screen.frame.maxX - 60)
-        let menuBarHeight = NSStatusBar.system.thickness
+        let size = PawDropView.windowSize
         let window = NSWindow(
-            contentRect: NSRect(x: iconX - w / 2, y: screen.frame.maxY - menuBarHeight - h,
-                                width: w, height: h),
+            contentRect: NSRect(x: 0, y: screen.frame.maxY - size.height, width: size.width, height: size.height),
             styleMask: [.borderless], backing: .buffered, defer: false)
         window.isOpaque = false
         window.backgroundColor = .clear
@@ -391,9 +387,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.level = .statusBar
         window.ignoresMouseEvents = true
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
+        // contentMinSize/contentMaxSize pin the window to `size`, so nothing -
+        // not even the hosting view collapsing to fit an empty SwiftUI
+        // conditional - can resize it out from under us again.
+        window.contentMinSize = size
+        window.contentMaxSize = size
         window.contentView = NSHostingView(rootView: PawDropView(engine: pawDropEngine))
         pawDropWindow = window
+        repositionPawDropWindow()
         window.orderFrontRegardless()
+    }
+
+    /// Slides `pawDropWindow` under wherever the real status item currently
+    /// is, and re-measures the menu bar height too. Called again right
+    /// before every trigger rather than trusted from setup time.
+    ///
+    /// `statusItem.button?.window?.frame` right after `setupStatusItem()` is
+    /// NOT nil, but it isn't the real position either — the status bar server
+    /// hasn't laid the item out yet, so it comes back as a degenerate
+    /// `(0, 0, 34, 0)`: real width already, but HEIGHT still zero. A `??`
+    /// fallback only catches nil, so that placeholder silently won and put
+    /// the whole gesture off-screen at the top-left instead of under the icon
+    /// at the top-right — found by logging the actual frame under LOAF_DEBUG
+    /// rather than guessing from the symptom. Checking width alone would
+    /// have made the exact same mistake again, since 34 already reads as
+    /// "real" — height is the dimension that's actually zero until layout
+    /// has happened, so that's what has to be checked.
+    /// By the time someone has clicked "Paw" from the real menu, the status
+    /// item has definitely been laid out for real, so re-deriving the
+    /// position at trigger time sidesteps the whole timing problem.
+    private func repositionPawDropWindow() {
+        guard let window = pawDropWindow, let screen = NSScreen.main else { return }
+        let w = window.frame.width, h = window.frame.height
+        let menuBarHeight = NSStatusBar.system.thickness
+        let iconX = (statusItem.button?.window?.frame.height ?? 0) > 1
+            ? statusItem.button!.window!.frame.midX
+            : screen.frame.maxX - 60
+        window.setFrameOrigin(NSPoint(x: iconX - w / 2, y: screen.frame.maxY - menuBarHeight - h))
+
+        if ProcessInfo.processInfo.environment["LOAF_DEBUG"] != nil {
+            FileHandle.standardError.write(Data(
+                "pawDropWindow repositioned frame=\(window.frame) statusItemWindow=\(String(describing: statusItem.button?.window?.frame))\n".utf8))
+        }
     }
 
     /// Window level and Space behaviour, from `Settings`.

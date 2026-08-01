@@ -26,15 +26,24 @@ final class PawDropEngine: ObservableObject {
     /// restarting it, so mashing the menu item doesn't snap her back to the
     /// top mid-swing.
     func trigger() {
-        guard startedAt == nil else { return }
+        guard startedAt == nil else {
+            if Self.debug { FileHandle.standardError.write(Data("pawDrop: trigger() ignored, already active\n".utf8)) }
+            return
+        }
         startedAt = Date()
+        if Self.debug { FileHandle.standardError.write(Data("pawDrop: trigger() started at \(startedAt!)\n".utf8)) }
         resetTimer?.invalidate()
         let t = Timer(timeInterval: Self.totalDuration, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated { self?.startedAt = nil }
+            MainActor.assumeIsolated {
+                self?.startedAt = nil
+                if Self.debug { FileHandle.standardError.write(Data("pawDrop: reset\n".utf8)) }
+            }
         }
         RunLoop.main.add(t, forMode: .common)
         resetTimer = t
     }
+
+    private static let debug = ProcessInfo.processInfo.environment["LOAF_DEBUG"] != nil
 }
 
 struct PawDropView: View {
@@ -46,6 +55,10 @@ struct PawDropView: View {
     static let reach: CGFloat = 190
     static let pawSize: CGFloat = 92
     static let armWidth: CGFloat = 28
+
+    /// The window this view lives in has to be this size always, not sized
+    /// to fit. AppDelegate uses the same numbers when it creates that window.
+    static var windowSize: CGSize { CGSize(width: pawSize + 60, height: reach + pawSize + 20) }
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -78,6 +91,14 @@ struct PawDropView: View {
                 .offset(y: -(Self.reach + Self.pawSize * 0.65) * (1 - down))
             }
         }
+        // ALWAYS this size, whether or not the `if let` above has content.
+        // Without this, the view's natural size while idle (nothing drawn)
+        // is zero, and NSHostingView shrinks the window to match - which is
+        // exactly what made the whole gesture render squeezed into a sliver
+        // at the menu bar instead of a big paw on the desktop. CatView never
+        // hits this because it always has a frame at every level regardless
+        // of state; this file only had one on the shapes INSIDE the `if let`.
+        .frame(width: Self.windowSize.width, height: Self.windowSize.height, alignment: .top)
         .allowsHitTesting(false)
     }
 
