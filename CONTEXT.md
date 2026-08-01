@@ -83,9 +83,12 @@ nagging.
 - **Jump frames 2–5 sit 4–8px below the ground line.** Airborne, so nothing shows;
   frames 1 and 6 (crouch, landing) are fixed at exactly 24. Numbers in
   `SPRITE_CONTRACT.md`.
-- **`chill` and `wake` are still unbuilt** — they show greyed out in the menu, which is
-  automatic, not hardcoded. `chill` wants the prop vignettes from the state model
-  (coffee, popcorn) via lil-cleo's `SHOW_FOR` pattern.
+- **`chill` and `wake` aren't in `LoafState` at all right now** — dropped rather than
+  shipped as permanently-disabled menu entries. They're still real ideas (see
+  `CLAUDE.md` §6, the state model): `chill` wants the prop vignettes from
+  lil-cleo's `SHOW_FOR` pattern (coffee, popcorn), `wake` wants a morning-stretch
+  pose. Re-add as `LoafState` cases once either gets real Blender art — nothing else
+  needs to change, the menu picks up a new case automatically.
 - **No `.app` bundle yet.** `swift run` only. `ref/lil-cleo/tools/package.sh` is a
   working template for the .app + .dmg, including ad-hoc signing.
 

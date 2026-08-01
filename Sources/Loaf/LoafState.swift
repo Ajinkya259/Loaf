@@ -21,10 +21,6 @@ enum LoafState: String, CaseIterable, Identifiable {
     case stressed       // hunched and bristling, shiver cycle, profile
     case jump           // 6-frame arc, profile — plays once, never held
 
-    // Planned. See CLAUDE.md §6. No art yet; the menu disables these.
-    case chill          // lounging with a prop vignette (coffee, popcorn)
-    case wake           // the morning stretch
-
     var id: String { rawValue }
 
     /// Sprite basename under `Resources/sprites/`. A cycle is `<sprite>1…N.png`;
@@ -53,9 +49,7 @@ enum LoafState: String, CaseIterable, Identifiable {
         case .sitSide:  "Sit (side)"
         case .sleep:    "Sleep"
         case .jump:     "Jump"
-        case .chill:    "Chill"
         case .stressed: "Stressed"
-        case .wake:     "Wake"
         }
     }
 

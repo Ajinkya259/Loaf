@@ -1,8 +1,9 @@
 import AppKit
 
 // Loaf is an accessory app: no dock icon, no application menu. She lives on the
-// desktop and is controlled entirely from the 🍞 item in the menu bar. Setting this
-// before `run()` is what stops a second, redundant dock icon appearing next to her.
+// desktop and is controlled entirely from the drawn paw item in the menu bar
+// (MenuBarIcon.swift). Setting this before `run()` is what stops a second,
+// redundant dock icon appearing next to her.
 
 // Headless snapshot mode, mirroring lil-cleo's CLEO_RENDER: rasterise the real
 // SwiftUI view and exit. The only way to see what the app draws rather than what

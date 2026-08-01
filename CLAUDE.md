@@ -69,11 +69,19 @@ explaining *why* when the change isn't self-evident.
 blender/
   catlib.py            geometry + material helpers (MIT fork of lil-cleo's bricklib)
   build_cat.py         THE source of truth: model, rig, palette, camera, walk cycle
-  build_cat_sit.py     the sit — separate build, not a pose (see §4)
-  build_all.sh         runs both builds + previews. Use this, never one alone.
+  build_cat_sit.py     sit, front — separate build, not a pose (see §4)
+  build_cat_sit_side.py   sit, profile — the corner-rest pose, same angle she walks in
+  build_cat_sleep.py   sleep — breathing cycle
+  build_cat_stressed.py   stressed — shiver cycle
+  build_all.sh         runs every build above, at every weight, + previews.
+                       Use this, never one script alone.
   make_previews.sh     composites sprites over grey for review
   explore_*.py         design-phase studies. History, not source. Don't edit to
                        change the look — edit build_cat.py.
+  palette_sheet.py     renders every candidate palette side by side. Same
+                       history-not-source status as explore_*.py.
+  walk.gif             a compiled reference of the walk cycle, for eyeballing motion
+                       without opening Blender.
 
 Package.swift          SwiftPM executable, macOS 14+, zero dependencies
 Makefile               make run / make cat / make help
@@ -89,6 +97,7 @@ Sources/Loaf/
   SystemMonitor.swift  edge-triggered CPU + memory pressure
   MoodMarks.swift      the "z"s and the "!" drawn above her
   Snapshot.swift       LOAF_SNAPSHOT — rasterise the real view to a PNG
+  MenuBarIcon.swift    the drawn paw template image for the menu-bar item
   Resources/sprites/<weight>/   ← Blender renders STRAIGHT INTO HERE (§3, §5)
 
 SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either side.
@@ -96,6 +105,9 @@ Idea.md                original brain-dump. Superseded in places (see §6).
 veo-prompts.md         Google Veo prompt pack (promo footage only, not sprites)
 veo-output/ANALYSIS.md why Veo was disqualified as a sprite source
 *.html                 design studies — open in Safari, don't publish as Artifacts
+web/                   Three.js live-rig previewer — same armature as the sprite
+                       build, posed continuously in a browser instead of baked to
+                       stills. `web/serve.sh` to run it. Dev tool, not shipped.
 ref/lil-cleo/          reference implementation, gitignored (see §5)
 ```
 
@@ -176,7 +188,7 @@ Locked into `build_cat.py`. Exploration is over.
 |---|---|
 | Coat | `#E8944A` — back, head, tail |
 | Underside | `#F6F1E7` — belly, bib, legs |
-| Accent | `#2B2B33` — socks, ear tips |
+| Accent | `#2B2B33` — socks, toes only, **not** ear tips |
 | Face | `#FBF8F4` / `#1A1A1E` only |
 | Lighting | hard axis suns, no shadows, **no specular** |
 
@@ -197,10 +209,16 @@ solid white on the first attempt.
 **Vertical slit pupils.** The most cat-specific feature available per block, and
 animatable (wide = startled, narrow = focused) with no new sprites.
 
+**Ears are one colour, with no dark tip.** The accent originally went on the ear
+tips too. Head-on that was fatal: a dark cap terminates the taper, so each ear read
+as a separate dark-topped post rather than a triangle growing out of the head —
+three colours stacked in a 0.19-tall shape is too much information at sprite size.
+Fixed in `82270c8`; see SPRITE_CONTRACT.md §3b.
+
 **The sit is a separate build, not a pose.** Standing legs are single rigid blocks
 with no knee, so no rotation folds the haunches. A sit needs different geometry —
-the back legs collapse into one wide rump. Same reason a future `sleep` will need
-its own build.
+the back legs collapse into one wide rump. Same reason `sleep` and `stressed` each
+got their own build script instead of being posed from the stander.
 
 **The face lives in ONE place: `build_face()` in `build_cat.py`.** Poses are separate
 builds, so every pose needs its own copy of the head — which is precisely how the
