@@ -78,7 +78,7 @@ struct SpeechBubbleView: View {
             if let message = engine.message {
                 Text(message)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Palette.ink)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -86,8 +86,12 @@ struct SpeechBubbleView: View {
                     .padding(.horizontal, 14)
                     .padding(.top, 10)
                     .padding(.bottom, 10 + BubbleShape.tailHeight)
-                    .background(BubbleShape().fill(.white))
-                    .overlay(BubbleShape().stroke(.black, lineWidth: 1.6))
+                    .background(BubbleShape().fill(Palette.cream))
+                    .overlay(
+                        BubbleShape().stroke(Palette.coat,
+                            style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                    )
+                    .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 3)
                     .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .bottom)))
             }
         }
@@ -97,12 +101,26 @@ struct SpeechBubbleView: View {
     }
 }
 
+/// Her committed palette (CLAUDE.md §4), reused here instead of plain black-and-
+/// white so the bubble reads as HERS rather than a generic system tooltip. Cream
+/// fill still gives the text plenty of contrast on any wallpaper - unlike the bare
+/// glyphs in MoodMarks.swift, this always has an opaque shape behind the text, so
+/// it doesn't need MoodMarks' harder black-on-white treatment to stay legible.
+private enum Palette {
+    static let coat = Color(red: 0xE8 / 255, green: 0x94 / 255, blue: 0x4A / 255)
+    static let cream = Color(red: 0xF6 / 255, green: 0xF1 / 255, blue: 0xE7 / 255)
+    static let ink = Color(red: 0x2B / 255, green: 0x2B / 255, blue: 0x33 / 255)
+}
+
 /// A rounded rect with a small tail at the bottom centre, pointing down at her head.
 /// One path for both, so the fill and stroke don't leave a seam where they join.
+/// The tail's corners are sharp in the path itself - `.round` line join on the
+/// stroke above is what actually softens them, which is simpler than hand-rounding
+/// the tail geometry and reads just as soft.
 private struct BubbleShape: Shape {
-    static let cornerRadius: CGFloat = 13
-    static let tailWidth: CGFloat = 14
-    static let tailHeight: CGFloat = 9
+    static let cornerRadius: CGFloat = 16
+    static let tailWidth: CGFloat = 16
+    static let tailHeight: CGFloat = 10
 
     func path(in rect: CGRect) -> Path {
         let bodyRect = CGRect(x: rect.minX, y: rect.minY,
