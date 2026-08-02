@@ -509,9 +509,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// Centres the bubble over wherever `characterWindow` actually is right now.
-    /// Called once per line, not continuously - she only ever speaks while standing
-    /// still (see `maybeSpeak`), so the bubble doesn't need to track a moving target.
-    private func repositionSpeechWindow() {
+    /// Not `private`: `stepWander` (AppDelegate+Wander.swift) calls this every tick
+    /// while a message is showing, so the bubble follows her if she starts moving
+    /// again mid-message rather than staying wherever she was when it began.
+    func repositionSpeechWindow() {
         guard let window = speechWindow, let char = characterWindow else { return }
         let cf = char.frame
         let size = window.frame.size

@@ -26,6 +26,13 @@ extension AppDelegate {
     }
 
     func stepWander() {
+        // Ahead of every early return below: a message can still be showing while
+        // she's held, pinned, falling or mid-jump, and the bubble has to follow her
+        // regardless of why she's moving. Positioning it once at trigger time and
+        // never again looked fine until she resumed strolling mid-message and left
+        // it behind - a dwell timeout can lapse well inside the 4.5s a line is up.
+        if speechEngine.message != nil { repositionSpeechWindow() }
+
         // Being carried: the drag owns the window origin, and nothing here may touch it.
         guard !engine.held else { return }
         // Pinned from the menu: she's being inspected, so hold still.
