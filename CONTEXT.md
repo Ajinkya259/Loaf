@@ -37,6 +37,14 @@ pat, `PawDropView.swift`) — now also fires on its own when the Mac wakes from
 sleep, standing in for the "morning greeting" from CLAUDE.md §6 with no text
 needed for it to read as one.
 
+**Speech bubbles** (`SpeechBubbleView.swift`) — a random one-liner from a curated
+pool, floated above her head while she's idle (not walking, not jumping, not
+already asleep or stressed — those already have their own read and a bubble on
+top would compete with it). Roughly every 1.5–4 minutes, or "Say something" in
+the menu for an immediate one. `Settings.letHerTalk` turns it off. No LLM behind
+it yet — this is the honest stand-in for that, described in `Idea.md`'s "brain
+layer": a fixed pool, not real understanding, but enough to feel alive.
+
 **Eight states × three weights = 72 sprites.** idle, walk, jump, sit (front), sit
 (profile), sleep, stressed, look.
 

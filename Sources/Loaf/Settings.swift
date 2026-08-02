@@ -52,6 +52,14 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(reactToSystem, forKey: "loaf.reactToSystem") }
     }
 
+    /// Random speech-bubble one-liners (`SpeechBubbleView.swift`). A real toggle and
+    /// not folded into `reactToSystem` - that one is about her body reacting to the
+    /// machine, this is her talking, and someone might want one without the other.
+    @Published var letHerTalk: Bool =
+        UserDefaults.standard.object(forKey: "loaf.letHerTalk") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(letHerTalk, forKey: "loaf.letHerTalk") }
+    }
+
     /// How heavy she is, which is the app's core signal made visible.
     ///
     /// Driven by task load once there is a task source; until then it is set by hand

@@ -51,7 +51,7 @@ enum Snapshot {
         engine.trigger()
         if elapsed > 0 { Thread.sleep(forTimeInterval: elapsed) }
 
-        let w = PawDropView.pawSize + 60, h = PawDropView.reach + PawDropView.pawSize + 20
+        let size = PawDropView.windowSize
         let view = ZStack {
             HStack(spacing: 0) {
                 Color.white
@@ -59,7 +59,35 @@ enum Snapshot {
             }
             PawDropView(engine: engine)
         }
-        .frame(width: w, height: h)
+        .frame(width: size.width, height: size.height)
+
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 3
+        guard let img = renderer.nsImage,
+              let tiff = img.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let png = rep.representation(using: .png, properties: [:]) else { return false }
+        do { try png.write(to: URL(fileURLWithPath: path)); return true } catch { return false }
+    }
+
+    /// Same idea, for the speech bubble (`SpeechBubbleView.swift`). No timing to
+    /// worry about here - unlike the paw drop it isn't a keyframed animation, just
+    /// a message that's either showing or isn't, so this renders instantly.
+    ///
+    ///     LOAF_SAY_SNAPSHOT=/tmp/s.png [LOAF_SAY_TEXT="a specific line"] swift run Loaf
+    static func renderSpeechBubble(text: String?, to path: String) -> Bool {
+        let engine = SpeechEngine()
+        engine.say(text)
+
+        let size = SpeechBubbleView.windowSize
+        let view = ZStack {
+            HStack(spacing: 0) {
+                Color.white
+                Color(red: 0.13, green: 0.13, blue: 0.16)
+            }
+            SpeechBubbleView(engine: engine)
+        }
+        .frame(width: size.width, height: size.height)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 3

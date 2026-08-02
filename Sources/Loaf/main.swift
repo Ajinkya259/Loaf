@@ -25,6 +25,15 @@ if let out = ProcessInfo.processInfo.environment["LOAF_PAW_SNAPSHOT"] {
     exit(ok ? 0 : 1)
 }
 
+// LOAF_SAY_SNAPSHOT=/tmp/s.png [LOAF_SAY_TEXT="..."] captures the speech bubble,
+// with a specific line or a random one from the pool if LOAF_SAY_TEXT is unset.
+if let out = ProcessInfo.processInfo.environment["LOAF_SAY_SNAPSHOT"] {
+    let text = ProcessInfo.processInfo.environment["LOAF_SAY_TEXT"]
+    let ok = MainActor.assumeIsolated { Snapshot.renderSpeechBubble(text: text, to: out) }
+    FileHandle.standardError.write(Data((ok ? "wrote \(out)\n" : "snapshot failed\n").utf8))
+    exit(ok ? 0 : 1)
+}
+
 // LOAF_ICON=/tmp/paw.png dumps the menu-bar icon, magnified, so it can actually be
 // looked at - a template image is invisible to a normal screenshot of the menu bar.
 if let out = ProcessInfo.processInfo.environment["LOAF_ICON"] {

@@ -16,10 +16,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     lazy var systemMonitor = SystemMonitor()
     lazy var userIdleMonitor = UserIdleMonitor()
     let pawDropEngine = PawDropEngine()
+    let speechEngine = SpeechEngine()
 
     var characterWindow: CharacterWindow!
     var statusItem: NSStatusItem!
     var pawDropWindow: NSWindow!
+    var speechWindow: NSWindow!
+    var speechTimer: Timer?
 
     // MARK: Geometry
 
@@ -138,6 +141,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupStatusItem()
         setupCharacterWindow()
         setupPawDropWindow()
+        setupSpeechWindow()
+        scheduleNextPing()
 
         // Test hook, mirroring lil-cleo's CLEO_ACTION: `LOAF_STATE=sit swift run Loaf`
         // holds one state centred with no wandering. This is how each state gets
@@ -256,6 +261,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         paw.target = self
         menu.addItem(paw)
 
+        let say = NSMenuItem(title: "Say something", action: #selector(pickSaySomething), keyEquivalent: "")
+        say.target = self
+        menu.addItem(say)
+
         menu.addItem(.separator())
         let weightMenu = NSMenu()
         for (name, id) in Settings.weights {
@@ -292,6 +301,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         react.target = self
         react.state = settings.reactToSystem ? .on : .off
         menu.addItem(react)
+
+        let talk = NSMenuItem(title: "Let her talk",
+                              action: #selector(toggleTalk(_:)), keyEquivalent: "")
+        talk.target = self
+        talk.state = settings.letHerTalk ? .on : .off
+        menu.addItem(talk)
 
         let sizeMenu = NSMenu()
         for (name, value) in Settings.sizePresets {
@@ -339,6 +354,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         pawDropEngine.trigger()
     }
 
+    /// Manual trigger, mirroring `pickPawDrop` - bypasses `maybeSpeak`'s
+    /// idle/overloaded/locomotion guard entirely, since picking this from the menu
+    /// already means you're looking right at her.
+    @objc private func pickSaySomething() {
+        repositionSpeechWindow()
+        speechEngine.say()
+    }
+
     @objc private func pickLayer(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         settings.layer = id
@@ -355,6 +378,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settings.reactToSystem.toggle()
         sender.state = settings.reactToSystem ? .on : .off
         if settings.reactToSystem { systemMonitor.start() } else { systemMonitor.stop() }
+    }
+
+    @objc private func toggleTalk(_ sender: NSMenuItem) {
+        settings.letHerTalk.toggle()
+        sender.state = settings.letHerTalk ? .on : .off
     }
 
     @objc private func pickWeight(_ sender: NSMenuItem) {
@@ -454,6 +482,62 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             FileHandle.standardError.write(Data(
                 "pawDropWindow repositioned frame=\(window.frame) statusItemWindow=\(String(describing: statusItem.button?.window?.frame))\n".utf8))
         }
+    }
+
+    // MARK: The speech bubble (SpeechBubbleView.swift)
+
+    /// A third small window, for random one-liners above her head. Same shape as
+    /// `pawDropWindow` - always ordered front, content draws nothing while
+    /// `speechEngine.message` is nil, size pinned so an empty message can't shrink
+    /// the window the way the first version of PawDropView did.
+    private func setupSpeechWindow() {
+        let size = SpeechBubbleView.windowSize
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.level = .floating
+        window.ignoresMouseEvents = true
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
+        window.contentMinSize = size
+        window.contentMaxSize = size
+        window.contentView = NSHostingView(rootView: SpeechBubbleView(engine: speechEngine))
+        speechWindow = window
+        window.orderFrontRegardless()
+    }
+
+    /// Centres the bubble over wherever `characterWindow` actually is right now.
+    /// Called once per line, not continuously - she only ever speaks while standing
+    /// still (see `maybeSpeak`), so the bubble doesn't need to track a moving target.
+    private func repositionSpeechWindow() {
+        guard let window = speechWindow, let char = characterWindow else { return }
+        let cf = char.frame
+        let size = window.frame.size
+        window.setFrameOrigin(NSPoint(x: cf.midX - size.width / 2, y: cf.maxY + 4))
+    }
+
+    /// Roll the dice on a random line, roughly every 1.5-4 minutes. Skips silently
+    /// (and just reschedules) if the conditions aren't right rather than forcing a
+    /// line in - see the guard for exactly what "right" means.
+    private func scheduleNextPing() {
+        speechTimer?.invalidate()
+        let delay = Double.random(in: 90...240)
+        let t = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.maybeSpeak() }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        speechTimer = t
+    }
+
+    private func maybeSpeak() {
+        defer { scheduleNextPing() }
+        guard settings.letHerTalk, engine.autopilot, !engine.held,
+              !engine.overloaded, !engine.userIdle,
+              !engine.state.isLocomotion, !engine.state.isOneShot else { return }
+        repositionSpeechWindow()
+        speechEngine.say()
     }
 
     /// Window level and Space behaviour, from `Settings`.

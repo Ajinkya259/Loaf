@@ -102,6 +102,9 @@ Sources/Loaf/
   PawDropView.swift    the "Paw" gesture — not a LoafState, a separate overlay
                        window, drawn code-side rather than Blender. Menu-triggered
                        or on system wake; see §6
+  SpeechBubbleView.swift   random one-liners, a stand-in personality layer for
+                       whenever there's an LLM behind her. Menu-triggered ("Say
+                       something") or random while idle, gated on Settings.letHerTalk
   Resources/sprites/<weight>/   ← Blender renders STRAIGHT INTO HERE (§3, §5)
 
 SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either side.
@@ -297,7 +300,8 @@ supply chain for something that needs nothing but AppKit, SwiftUI and a folder o
 **Working today:** window on the dock; stroll → dwell → corner sit → sleep; jump with an
 app-driven arc; eight states across three body weights (72 sprites); CPU/memory
 reactions; sleeps early when you've stepped away; a "Paw" gesture that also fires on
-system wake. 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS, **zero permissions requested**.
+system wake; random speech-bubble one-liners while idle. 160×128pt at scale 1.0,
+~1.7% CPU, ~90MB RSS, **zero permissions requested**.
 
 ### The two axes of the mechanic
 
