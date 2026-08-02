@@ -219,19 +219,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Cheaper than keeping a dozen `NSMenuItem` references in sync, and it means the
     /// "no art yet" section updates itself the moment Blender renders a new state —
     /// no code change needed to light one up.
+    ///
+    /// Kept SHORT on purpose: four top-level rows plus Quit, not the twenty-odd flat
+    /// list this used to be - no header either, since the state already shows in her
+    /// own animation and a disabled title row was just something to read past.
+    /// Autopilot is the point of the app - jump, stress, sleep, the paw
+    /// greeting and the speech bubbles all already happen on their own - so picking a
+    /// pose by hand is the exception, not the main event, and belongs one level down
+    /// in "Actions" rather than cluttering the top of the menu every time you open it.
+    /// Weight stays at the top level anyway: it's the one dial with no automatic
+    /// source yet, so it's the one thing people will actually reach for often.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-
-        let header = NSMenuItem(title: "Loaf — \(engine.state.title)", action: nil, keyEquivalent: "")
-        header.isEnabled = false
-        menu.addItem(header)
-        menu.addItem(.separator())
 
         let auto = NSMenuItem(title: "Autopilot", action: #selector(pickAutopilot), keyEquivalent: "")
         auto.target = self
         auto.state = engine.autopilot ? .on : .off
         menu.addItem(auto)
+
+        let weightMenu = NSMenu()
+        for (name, id) in Settings.weights {
+            let item = NSMenuItem(title: name, action: #selector(pickWeight(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            item.state = (settings.weight == id) ? .on : .off
+            weightMenu.addItem(item)
+        }
+        let weightRoot = NSMenuItem(title: "Weight", action: nil, keyEquivalent: "")
+        weightRoot.submenu = weightMenu
+        menu.addItem(weightRoot)
+
+        let actionsRoot = NSMenuItem(title: "Actions", action: nil, keyEquivalent: "")
+        actionsRoot.submenu = buildActionsMenu()
+        menu.addItem(actionsRoot)
+
+        let settingsRoot = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
+        settingsRoot.submenu = buildSettingsMenu()
+        menu.addItem(settingsRoot)
+
         menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit Loaf", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+    }
+
+    /// Everything that pins a specific pose or plays a one-shot gesture by hand -
+    /// what autopilot already does for you. One submenu instead of a dozen top-level
+    /// rows.
+    private func buildActionsMenu() -> NSMenu {
+        let menu = NSMenu()
 
         for s in LoafState.rendered {
             let item = NSMenuItem(title: s.title, action: #selector(pickState(_:)), keyEquivalent: "")
@@ -253,10 +287,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
         }
 
-        // Not a LoafState: this doesn't touch her body or pose at all, it's a
-        // separate overlay (PawDropView.swift) layered above whatever she's
-        // already doing. One-shot, like Jump, but its own thing rather than
-        // folded into the state list.
+        menu.addItem(.separator())
+
+        // Neither of these is a LoafState - they're separate overlays (PawDropView,
+        // SpeechBubbleView) layered above whatever she's already doing, not poses of
+        // her own. Grouped here anyway because from the menu's point of view they're
+        // the same kind of thing as Jump: a one-shot you can trigger by hand, which
+        // autopilot also triggers on its own (system wake, the random speech timer).
         let paw = NSMenuItem(title: "Paw", action: #selector(pickPawDrop), keyEquivalent: "")
         paw.target = self
         menu.addItem(paw)
@@ -265,18 +302,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         say.target = self
         menu.addItem(say)
 
-        menu.addItem(.separator())
-        let weightMenu = NSMenu()
-        for (name, id) in Settings.weights {
-            let item = NSMenuItem(title: name, action: #selector(pickWeight(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = id
-            item.state = (settings.weight == id) ? .on : .off
-            weightMenu.addItem(item)
-        }
-        let weightRoot = NSMenuItem(title: "Weight", action: nil, keyEquivalent: "")
-        weightRoot.submenu = weightMenu
-        menu.addItem(weightRoot)
+        return menu
+    }
+
+    /// Display and reaction preferences - things you set once and rarely touch again,
+    /// as opposed to Weight, which stays at the top level because it's the one control
+    /// people will actually reach for on every visit until it has a real source.
+    private func buildSettingsMenu() -> NSMenu {
+        let menu = NSMenu()
 
         let showMenu = NSMenu()
         for (name, id) in Settings.layers {
@@ -296,18 +329,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         showRoot.submenu = showMenu
         menu.addItem(showRoot)
 
-        let react = NSMenuItem(title: "React to system load",
-                               action: #selector(toggleReact(_:)), keyEquivalent: "")
-        react.target = self
-        react.state = settings.reactToSystem ? .on : .off
-        menu.addItem(react)
-
-        let talk = NSMenuItem(title: "Let her talk",
-                              action: #selector(toggleTalk(_:)), keyEquivalent: "")
-        talk.target = self
-        talk.state = settings.letHerTalk ? .on : .off
-        menu.addItem(talk)
-
         let sizeMenu = NSMenu()
         for (name, value) in Settings.sizePresets {
             let item = NSMenuItem(title: name, action: #selector(pickSize(_:)), keyEquivalent: "")
@@ -321,7 +342,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(sizeRoot)
 
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Loaf", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+
+        let react = NSMenuItem(title: "React to system load",
+                               action: #selector(toggleReact(_:)), keyEquivalent: "")
+        react.target = self
+        react.state = settings.reactToSystem ? .on : .off
+        menu.addItem(react)
+
+        let talk = NSMenuItem(title: "Let her talk",
+                              action: #selector(toggleTalk(_:)), keyEquivalent: "")
+        talk.target = self
+        talk.state = settings.letHerTalk ? .on : .off
+        menu.addItem(talk)
+
+        return menu
     }
 
     @objc private func pickAutopilot() {
