@@ -18,8 +18,10 @@ is doing changes her mood.
   "good morning."
 - **Every 1-2 hours, a water-break nudge** — the same paw drop, paired with a
   reminder to go drink some water.
-- Random one-liners while she's idle — sarcastic, a little bored, occasionally
-  demanding attention. No LLM behind it (yet) — a curated pool for now.
+- **LLM-generated one-liners while she's idle** — sarcastic, a little bored,
+  aware of her actual weight and whether the machine's struggling. Falls back
+  to a curated fixed pool with no API key set, or on any network hiccup — no
+  visible difference in behaviour either way.
 - **Hover or click her directly and she greets you** — an immediate "Hey." and
   a glance in your direction, rather than waiting for the next idle check.
 - Draggable. Pick her up and she wakes and looks at you; let go and she falls
@@ -88,8 +90,10 @@ Two independent pieces:
    permission the app asks for). `PawDropView.swift` and
    `SpeechBubbleView.swift` are separate overlays layered above whatever pose
    she's in, not poses themselves — a "Paw" greeting on system wake and every
-   1-2h as a water-break nudge, and speech bubbles either random while idle
-   or immediate when you hover or click her directly.
+   1-2h as a water-break nudge, and speech bubbles either idle-triggered or
+   immediate on hover/click. `LLMBrain.swift` (OpenRouter) generates the
+   idle-triggered lines when an API key is set, falling back to
+   `SpeechBubbleView`'s fixed pool otherwise.
 
 8 states currently have art — idle, walk, look, sit (front), sit (profile),
 sleep, stressed, jump — each rendered at 3 body weights, 72 sprites total.
@@ -126,8 +130,11 @@ Measured live on an M-series Mac, current build:
 
 CPU varies with machine load and display refresh rate — the character view
 redraws on every frame it's animating, so a busy stroll costs more than
-standing still. Either way: no polling loops, no background network activity,
-nothing that runs when she isn't visible.
+standing still. No polling loops, and nothing that runs when she isn't
+visible. One exception to "no background network activity" as of `LLMBrain.
+swift`: roughly every 1.5–4 minutes, one small request to OpenRouter for a
+speech-bubble line, only while she's idle and only if an API key is set.
+Nothing else in the app makes network calls.
 
 ### Regenerating the art
 
@@ -157,17 +164,19 @@ ever added (`LOAF_SIGN_ID` to override) — until then, ad-hoc.
 
 Working today: dock stroll → dwell → corner sit → sleep, jumps, dragging,
 CPU/memory-driven stress reactions, sleeps early when you step away, a paw
-greeting on system wake and every 1-2h as a water-break nudge, random speech
-bubbles, an immediate greeting on hover/click, task load driven live by
-Reminders, launch at login, a real installable `.app`, 72 sprites across 3
-weights and 8 states.
+greeting on system wake and every 1-2h as a water-break nudge, LLM-generated
+speech bubbles (`LLMBrain.swift`, OpenRouter, falls back to a fixed pool),
+an immediate greeting on hover/click, task load driven live by Reminders,
+launch at login, a real installable `.app`, 72 sprites across 3 weights and
+8 states.
 
 Not done yet:
 
-- **The speech bubbles are a fixed line pool, not a real LLM.** An honest
-  stand-in for the "brain layer" from `Idea.md` — the actual integration
-  point (`SpeechEngine.say(_:)`) already takes a specific string, so wiring
-  in a model later doesn't need to touch the display or timing code.
+- **The OpenRouter key lives in `LOAF_OPENROUTER_KEY` for now**, not
+  Keychain — fine for a terminal-launched dev build, but it won't be there
+  for "Launch at login" (no shell environment behind an app SMAppService
+  starts). `Keychain.swift` already exists and is checked as a fallback;
+  it just needs a menu item to actually write to it.
 - **No notarization** on the packaged `.app` — needs an Apple Developer
   Program membership this project doesn't have. Ad-hoc signed works fine
   locally; sharing it means a one-time right-click → Open for whoever runs it.

@@ -25,6 +25,7 @@ LOAF_DEBUG=1 ./.build/debug/Loaf                # log CPU/memory/idle/paw/hydrat
 LOAF_IDLE_THRESHOLD=8 ./.build/debug/Loaf       # seconds, not the real ~180s, for testing
 LOAF_HYDRATION_INTERVAL=8 ./.build/debug/Loaf   # seconds, not the real ~1-2h, for testing
 LOAF_LOGIN_ITEM=status  dist/Loaf.app/Contents/MacOS/Loaf   # or register/unregister
+LOAF_OPENROUTER_KEY=sk-... LOAF_LLM_TEST=1 ./.build/debug/Loaf   # + LOAF_LLM_WEIGHT/OVERLOADED
 blender/build_all.sh                            # re-render all 72 sprites (~3 min)
 make dist                                       # dist/Loaf.app + dist/Loaf.dmg, installable
 ```
@@ -63,13 +64,31 @@ and every 1-2 hours paired with a water-reminder line (`Settings.hydrationRemind
 its own toggle since a health nag and ambient personality are different enough in
 kind that someone may want one without the other).
 
-**Speech bubbles** (`SpeechBubbleView.swift`) — a random one-liner from a curated
-pool, floated above her head while she's idle (not walking, not jumping, not
-already asleep or stressed — those already have their own read and a bubble on
-top would compete with it). Roughly every 1.5–4 minutes, or "Say something" in
-the menu for an immediate one. `Settings.letHerTalk` turns it off. No LLM behind
-it yet — this is the honest stand-in for that, described in `Idea.md`'s "brain
-layer": a fixed pool, not real understanding, but enough to feel alive.
+**Speech bubbles** (`SpeechBubbleView.swift`) — floated above her head while
+she's idle (not walking, not jumping, not already asleep or stressed — those
+already have their own read and a bubble on top would compete with it).
+Roughly every 1.5–4 minutes, or "Say something" in the menu for an immediate
+one. `Settings.letHerTalk` turns it off.
+
+**The brain layer from `Idea.md` is live**, via `LLMBrain.swift` — OpenRouter,
+`google/gemma-4-26b-a4b-it:free` (picked over several other free-tier models:
+no hidden reasoning tokens burning the budget before ever answering, small
+completions, good in-character output on the first try). She gets her actual
+weight and whether the machine's overloaded as context, so she can riff on her
+real situation without being forced to every time. Falls back to
+`SpeechEngine.lines` (the fixed pool) with NO visible difference in behaviour
+if there's no key, the network fails, or the response is malformed - same
+"never nags, degrades silently" shape as `TaskLoadMonitor`. Only wired into the
+ambient pings and "Say something", not greetings or hydration - those are
+direct-interaction moments where the LLM's ~7s latency would read as broken
+rather than thoughtful; an ambient ping has nothing waiting on it, so the same
+delay is invisible.
+
+**The API key is `LOAF_OPENROUTER_KEY` for now** - matches every other
+`LOAF_*` knob, but won't survive "Launch at login" (SMAppService starts her
+with no shell environment at all). `Keychain.swift` already exists as the
+real, permanent home for it - checked second, after the env var, so wiring up
+a "Set API Key..." menu item later needs zero changes to `LLMBrain.swift`.
 
 **Eight states × three weights = 72 sprites.** idle, walk, jump, sit (front), sit
 (profile), sleep, stressed, look.
@@ -186,5 +205,6 @@ human noticed.
 | `blender/build_cat.py` | source of truth: model, rig, palette, camera, walk, jump |
 | `Sources/Loaf/LoafState.swift` | the behaviour↔art contract. Start here in the app |
 | `Sources/Loaf/TaskLoadMonitor.swift` | the real task-load source — Reminders → weight |
+| `Sources/Loaf/LLMBrain.swift` | the real brain layer — OpenRouter → speech-bubble lines |
 | `tools/package.sh` | `make app` / `make dist` — builds the real, installable `.app` |
 | `ref/lil-cleo/` | the reference implementation (gitignored; re-clone if missing) |

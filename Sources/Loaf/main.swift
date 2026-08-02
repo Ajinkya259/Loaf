@@ -35,6 +35,29 @@ if let out = ProcessInfo.processInfo.environment["LOAF_SAY_SNAPSHOT"] {
     exit(ok ? 0 : 1)
 }
 
+// LOAF_LLM_TEST=1 [LOAF_LLM_WEIGHT=chonk] [LOAF_LLM_OVERLOADED=1] calls LLMBrain
+// directly and prints whatever it returns, since there's no way to sit and wait
+// for the random speech timer to land on a moment worth watching. Bridges the
+// async call into top-level code by spinning the run loop rather than blocking
+// it outright - a real semaphore.wait() here would deadlock, since LLMBrain is
+// @MainActor and answering that call needs the very thread a blocking wait
+// would freeze.
+if ProcessInfo.processInfo.environment["LOAF_LLM_TEST"] != nil {
+    let weight = ProcessInfo.processInfo.environment["LOAF_LLM_WEIGHT"] ?? "normal"
+    let overloaded = ProcessInfo.processInfo.environment["LOAF_LLM_OVERLOADED"] != nil
+    final class ResultBox: @unchecked Sendable { var done = false; var line: String? }
+    let box = ResultBox()
+    Task { @MainActor in
+        box.line = await LLMBrain.line(weight: weight, overloaded: overloaded)
+        box.done = true
+    }
+    while !box.done {
+        RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.05))
+    }
+    FileHandle.standardError.write(Data("line: \(box.line ?? "nil (fell back to pool)")\n".utf8))
+    exit(0)
+}
+
 // LOAF_LOGIN_ITEM=register|unregister|status exercises SMAppService directly,
 // since there's no way to click the "Launch at login" menu item from a script.
 // Only meaningful run from inside a real .app bundle - see AppDelegate's own

@@ -443,10 +443,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Manual trigger, mirroring `pickPawDrop` - bypasses `maybeSpeak`'s
     /// idle/overloaded/locomotion guard entirely, since picking this from the menu
-    /// already means you're looking right at her.
+    /// already means you're looking right at her. Also the easiest way to test
+    /// LLMBrain on demand rather than waiting for the random timer - takes the
+    /// same ~7s if a key is set, with nothing shown until the line is ready
+    /// (no loading indicator; the ambient ping has the same gap and it's never
+    /// been an issue there since nothing is waiting on it).
     @objc private func pickSaySomething() {
-        repositionSpeechWindow()
-        speechEngine.say()
+        let weight = settings.weight, overloaded = engine.overloaded
+        Task {
+            let line = await LLMBrain.line(weight: weight, overloaded: overloaded)
+            repositionSpeechWindow()
+            speechEngine.say(line)
+        }
     }
 
     /// Hover or a plain click/tap on her (`CatView.onGreet`), not a drag.
@@ -688,14 +696,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         speechTimer = t
     }
 
+    /// Same conditions `pickSaySomething` deliberately bypasses (that one's a direct
+    /// menu click, this is an unattended timer) - factored out because `maybeSpeak`
+    /// now has to check it twice: once before spending ~7s asking the LLM for a
+    /// line, and again after, since she could have started walking, gone idle, or
+    /// gotten stressed in the meantime.
+    private var canPingNow: Bool {
+        settings.letHerTalk && engine.autopilot && !engine.held
+            && !engine.overloaded && !engine.userIdle
+            && !engine.state.isLocomotion && !engine.state.isOneShot
+            && speechEngine.message == nil
+    }
+
     private func maybeSpeak() {
         defer { scheduleNextPing() }
-        guard settings.letHerTalk, engine.autopilot, !engine.held,
-              !engine.overloaded, !engine.userIdle,
-              !engine.state.isLocomotion, !engine.state.isOneShot,
-              speechEngine.message == nil else { return }
-        repositionSpeechWindow()
-        speechEngine.say()
+        guard canPingNow else { return }
+        let weight = settings.weight, overloaded = engine.overloaded
+        Task {
+            // LLMBrain returns nil with no key set, on any network failure, or on
+            // a malformed reply - say(nil) already means "pick a random pool
+            // line", so there's nothing else to branch on here.
+            let line = await LLMBrain.line(weight: weight, overloaded: overloaded)
+            guard canPingNow else { return }
+            repositionSpeechWindow()
+            speechEngine.say(line)
+        }
     }
 
     /// Water-break nudges: a paw drop paired with a line from

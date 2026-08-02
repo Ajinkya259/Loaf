@@ -106,9 +106,12 @@ Sources/Loaf/
   PawDropView.swift    the "Paw" gesture — not a LoafState, a separate overlay
                        window, drawn code-side rather than Blender. Menu-triggered
                        or on system wake; see §6
-  SpeechBubbleView.swift   random one-liners, a stand-in personality layer for
-                       whenever there's an LLM behind her. Menu-triggered ("Say
-                       something") or random while idle, gated on Settings.letHerTalk
+  SpeechBubbleView.swift   the bubble UI + the fixed-pool fallback. Menu-triggered
+                       ("Say something") or random while idle, gated on Settings.letHerTalk
+  LLMBrain.swift        the real brain layer — OpenRouter, falls back to
+                       SpeechBubbleView's pool on any failure
+  Keychain.swift        the permanent home for the OpenRouter key (LOAF_OPENROUTER_KEY
+                       env var for now — see §5)
   Resources/sprites/<weight>/   ← Blender renders STRAIGHT INTO HERE (§3, §5)
 
 SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either side.
@@ -304,8 +307,9 @@ supply chain for something that needs nothing but AppKit, SwiftUI and a folder o
 **Working today:** window on the dock; stroll (~4min) → dwell → corner sit → sleep;
 jump with an app-driven arc; eight states across three body weights (72 sprites);
 CPU/memory reactions; sleeps early when you've stepped away; a "Paw" gesture that
-also fires on system wake and every 1-2h as a water-break nudge; random speech-bubble
-one-liners while idle; hover/click her for an immediate greeting; task load driven
+also fires on system wake and every 1-2h as a water-break nudge; speech bubbles
+generated live by an LLM (falls back to a fixed pool with no key or on any
+failure) while idle; hover/click her for an immediate greeting; task load driven
 live by incomplete Reminders; "Launch at login" via `SMAppService`. 160×128pt at
 scale 1.0, ~1.7% CPU, ~90MB RSS, **one permission requested** — Reminders, for
 task load.
@@ -447,7 +451,7 @@ Supersedes `Idea.md` where they disagree.
 | No tasks, user present | chill + prop vignette (coffee, popcorn) | no — `chill` has no art, see §4 |
 | Tasks piling up | fat **and** depressed — mood, not just size | weight is live; "depressed" mood on top of it isn't |
 | Machine overloaded | stressed, hunched, ears flat | **live** — `SystemMonitor`, CPU/memory → `stressed` |
-| System wake | morning greeting | **live**, minus the greeting text — `NSWorkspace.didWakeNotification` triggers the "Paw" gesture (`PawDropView.swift`) instead. A real greeting needs the brain layer below to have anything to say |
+| System wake | morning greeting | **live**, minus the greeting text — `NSWorkspace.didWakeNotification` triggers the "Paw" gesture (`PawDropView.swift`) instead. `LLMBrain.swift` exists now, but isn't wired into this path - wake fires once, on an unpredictable schedule, so there's no way to pre-fetch a line without a several-second gap between waking and her actually saying anything |
 
 Props should use lil-cleo's `SHOW_FOR` map (props toggled per state on one base
 pose) — already-solved architecture, don't invent a new mechanism.
