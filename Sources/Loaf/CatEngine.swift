@@ -43,6 +43,14 @@ final class CatEngine: ObservableObject {
     /// the loop's strolling and napping are simply not consulted.
     @Published var overloaded = false
 
+    /// Nobody has touched the keyboard or mouse in a while. Set by
+    /// `UserIdleMonitor`, read by the wander loop.
+    ///
+    /// Lower priority than `overloaded` on purpose: the machine can be both idle AND
+    /// struggling at once (a background job left running while you stepped away), and
+    /// stressed has to win that - see `stepWander`.
+    @Published var userIdle = false
+
     /// True when the wander loop is allowed to drive.
     var autopilot: Bool { pinned == nil }
 

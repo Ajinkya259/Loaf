@@ -49,6 +49,17 @@ extension AppDelegate {
             return
         }
 
+        // Below overloaded on purpose (see CatEngine.userIdle): a struggling machine
+        // still wins even if you've also stepped away. She settles in place rather
+        // than walking to a corner first - "immediately dozes off where she stood" is
+        // legible on its own and doesn't need the extra travel to read as idle.
+        if engine.userIdle, LoafState.sleep.available {
+            engine.setAuto(.sleep)
+            strollSpeed = 0
+            place(loafX, y)
+            return
+        }
+
         switch activity {
         case .strolling:
             strollStep(minX: minX, maxX: maxX, y: y)

@@ -32,9 +32,10 @@ blender/build_all.sh                            # re-render all 72 sprites (~3 m
 
 Dock stroll → dwell → corner sit → sleep. Jumps (about one stroll leg in seven).
 Draggable — picking her up wakes her, and she falls back to the dock when dropped.
-**Paw** in the menu is a manual gesture — a big version of the menu-bar icon drops
-down and gives a double pat, `PawDropView.swift`. Not a reaction to anything yet;
-just the motion, validated first in `paw-drop-study.html`.
+**Paw** in the menu is the same gesture (big menu-bar icon, drops down, double
+pat, `PawDropView.swift`) — now also fires on its own when the Mac wakes from
+sleep, standing in for the "morning greeting" from CLAUDE.md §6 with no text
+needed for it to read as one.
 
 **Eight states × three weights = 72 sprites.** idle, walk, jump, sit (front), sit
 (profile), sleep, stressed, look.
@@ -44,9 +45,15 @@ just the motion, validated first in `paw-drop-study.html`.
 | Signal | Changes | Source |
 |---|---|---|
 | Machine load | her posture (`stressed`) | **live** — CPU + memory, edge-triggered |
+| User presence | sleep, early | **live** — `UserIdleMonitor`, no input for ~3min |
 | Task load | her body (weight) | **hand-set from the menu** |
 
-Zero third-party dependencies. Zero permissions requested. ~1.7% CPU, ~90MB RSS.
+Machine load outranks user-idle if both are true at once (`CatEngine.userIdle`) - a
+background job left running while you stepped away still reads as stressed, not
+asleep.
+
+Zero third-party dependencies. Zero permissions requested — `UserIdleMonitor` uses
+`CGEventSource`, which needs none, same as `SystemMonitor`. ~1.7% CPU, ~90MB RSS.
 
 ---
 

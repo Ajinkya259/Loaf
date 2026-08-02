@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let settings = Settings()
     let engine = CatEngine()
     lazy var systemMonitor = SystemMonitor()
+    lazy var userIdleMonitor = UserIdleMonitor()
     let pawDropEngine = PawDropEngine()
 
     var characterWindow: CharacterWindow!
@@ -168,6 +169,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if !hot { beginStroll(seconds: Double.random(in: 10...20)) }
         }
         if settings.reactToSystem { systemMonitor.start() }
+
+        // Unconditional, unlike systemMonitor - there's no version of this app where
+        // staying awake forever while you're away is the right call, so it isn't
+        // behind the "React to system load" toggle. That toggle is specifically about
+        // CPU/memory, not about whether she notices you've left.
+        userIdleMonitor.onChange = { [weak self] idle in
+            guard let self else { return }
+            engine.userIdle = idle
+            if !idle { beginStroll(seconds: Double.random(in: 15...30)) }
+        }
+        userIdleMonitor.start()
+
+        // The "morning greeting" from CLAUDE.md's state model, minus the text she
+        // doesn't have anything to say yet - the gesture alone reads as a greeting
+        // without needing the brain layer. Reuses the same gesture "Paw" plays.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.repositionPawDropWindow()
+                self.pawDropEngine.trigger()
+            }
+        }
     }
 
     // MARK: The menu-bar control

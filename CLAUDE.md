@@ -95,11 +95,13 @@ Sources/Loaf/
   Sprites.swift        bundle loading, cycle counting, caching
   Settings.swift       persisted scale + wander toggle
   SystemMonitor.swift  edge-triggered CPU + memory pressure
+  UserIdleMonitor.swift   edge-triggered keyboard/mouse idle, no permission needed
   MoodMarks.swift      the "z"s and the "!" drawn above her
   Snapshot.swift       LOAF_SNAPSHOT — rasterise the real view to a PNG
   MenuBarIcon.swift    the drawn paw template image for the menu-bar item
-  PawDropView.swift    the manual "Paw" gesture — not a LoafState, a separate
-                       overlay window, drawn code-side rather than Blender
+  PawDropView.swift    the "Paw" gesture — not a LoafState, a separate overlay
+                       window, drawn code-side rather than Blender. Menu-triggered
+                       or on system wake; see §6
   Resources/sprites/<weight>/   ← Blender renders STRAIGHT INTO HERE (§3, §5)
 
 SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either side.
@@ -294,7 +296,8 @@ supply chain for something that needs nothing but AppKit, SwiftUI and a folder o
 
 **Working today:** window on the dock; stroll → dwell → corner sit → sleep; jump with an
 app-driven arc; eight states across three body weights (72 sprites); CPU/memory
-reactions. 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS, **zero permissions requested**.
+reactions; sleeps early when you've stepped away; a "Paw" gesture that also fires on
+system wake. 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS, **zero permissions requested**.
 
 ### The two axes of the mechanic
 
@@ -395,19 +398,21 @@ depth in Z, which is the axis the profile camera *does* see.
 
 Supersedes `Idea.md` where they disagree.
 
-| Trigger | State |
-|---|---|
-| No tasks, user idle | sleepy → napping |
-| No tasks, user present | chill + prop vignette (coffee, popcorn) |
-| Tasks piling up | fat **and** depressed — mood, not just size |
-| Machine overloaded | stressed, hunched, ears flat |
-| System wake | morning greeting |
+| Trigger | State | Built? |
+|---|---|---|
+| No tasks, user idle | sleepy → napping | **live** — `UserIdleMonitor`, no keyboard/mouse input for ~3min → `sleep` |
+| No tasks, user present | chill + prop vignette (coffee, popcorn) | no — `chill` has no art, see §4 |
+| Tasks piling up | fat **and** depressed — mood, not just size | weight is live; "depressed" mood on top of it isn't |
+| Machine overloaded | stressed, hunched, ears flat | **live** — `SystemMonitor`, CPU/memory → `stressed` |
+| System wake | morning greeting | **live**, minus the greeting text — `NSWorkspace.didWakeNotification` triggers the "Paw" gesture (`PawDropView.swift`) instead. A real greeting needs the brain layer below to have anything to say |
 
 Props should use lil-cleo's `SHOW_FOR` map (props toggled per state on one base
 pose) — already-solved architecture, don't invent a new mechanism.
 
-`stressed` is **blocked on ear bones** — flattened ears are the most readable
-stress cue and the ears currently ride the head bone.
+`stressed`'s pose is built (`build_cat_stressed.py`, flat ears via geometry, not
+rig bones — the earlier note that it was "blocked on ear bones" assumed posing
+the standing rig, which was wrong: poses are separate builds). What's still
+missing is triggering it from anything other than `SystemMonitor`.
 
 Task-load source is still open. Recommendation: Apple Reminders via EventKit — no
 OAuth, no backend, and the sibling FlyThrough project already proves the pattern.
