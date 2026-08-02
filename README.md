@@ -24,6 +24,8 @@ is doing changes her mood.
   a glance in your direction, rather than waiting for the next idle check.
 - Draggable. Pick her up and she wakes and looks at you; let go and she falls
   back to the dock instead of teleporting.
+- **"Launch at login"** in the menu (once installed as a real `.app`), so a
+  reboot doesn't silently end her until you remember to relaunch.
 
 She's **generated, not drawn** — every sprite comes out of a headless Blender
 script (`blender/build_cat*.py`). Nothing here is hand-painted, so changing her
@@ -157,7 +159,8 @@ Working today: dock stroll → dwell → corner sit → sleep, jumps, dragging,
 CPU/memory-driven stress reactions, sleeps early when you step away, a paw
 greeting on system wake and every 1-2h as a water-break nudge, random speech
 bubbles, an immediate greeting on hover/click, task load driven live by
-Reminders, a real installable `.app`, 72 sprites across 3 weights and 8 states.
+Reminders, launch at login, a real installable `.app`, 72 sprites across 3
+weights and 8 states.
 
 Not done yet:
 

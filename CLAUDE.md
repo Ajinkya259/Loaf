@@ -306,8 +306,9 @@ jump with an app-driven arc; eight states across three body weights (72 sprites)
 CPU/memory reactions; sleeps early when you've stepped away; a "Paw" gesture that
 also fires on system wake and every 1-2h as a water-break nudge; random speech-bubble
 one-liners while idle; hover/click her for an immediate greeting; task load driven
-live by incomplete Reminders. 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS,
-**one permission requested** — Reminders, for task load.
+live by incomplete Reminders; "Launch at login" via `SMAppService`. 160×128pt at
+scale 1.0, ~1.7% CPU, ~90MB RSS, **one permission requested** — Reminders, for
+task load.
 
 **`make app` / `make dist` build a real, installable `Loaf.app`** via
 `tools/package.sh` — adapted from `ref/lil-cleo`'s own template, not written from

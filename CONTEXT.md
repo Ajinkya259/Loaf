@@ -24,9 +24,21 @@ LOAF_SNAPSHOT=/tmp/x.png LOAF_STATE=stressed ./.build/debug/Loaf   # see what th
 LOAF_DEBUG=1 ./.build/debug/Loaf                # log CPU/memory/idle/paw/hydration/taskLoad
 LOAF_IDLE_THRESHOLD=8 ./.build/debug/Loaf       # seconds, not the real ~180s, for testing
 LOAF_HYDRATION_INTERVAL=8 ./.build/debug/Loaf   # seconds, not the real ~1-2h, for testing
+LOAF_LOGIN_ITEM=status  dist/Loaf.app/Contents/MacOS/Loaf   # or register/unregister
 blender/build_all.sh                            # re-render all 72 sprites (~3 min)
 make dist                                       # dist/Loaf.app + dist/Loaf.dmg, installable
 ```
+
+**`tools/package.sh` was unreliable in one dev session** — repeated runs stalled
+indefinitely at the `codesign --deep` step, and `ps` showed a `swift build`
+(debug config) as a literal child of the script's own bash process despite the
+script never invoking one. Root cause not found; strongly looked like something
+external to the script (an editor auto-build/run feature) injecting into the
+same shell session. Manually assembling the bundle (copy the release binary +
+`Loaf_Loaf.bundle` + a hand-written `Info.plist`, generate the icon with the
+same Python block, `codesign --force --deep --sign -`) worked instantly and
+reliably every time as a fallback. If `tools/package.sh` ever hangs again,
+that's the workaround — don't assume the script itself regressed.
 
 `git tag -l` → `v0.1-six-states`, `v0.2-both-axes`. Both are known-good.
 
@@ -61,6 +73,17 @@ layer": a fixed pool, not real understanding, but enough to feel alive.
 
 **Eight states × three weights = 72 sprites.** idle, walk, jump, sit (front), sit
 (profile), sleep, stressed, look.
+
+**"Launch at login"** in Settings, via `SMAppService.mainApp` (`ServiceManagement`,
+a system framework, not a dependency) — the modern replacement for hand-rolled
+LaunchAgent plists. Only meaningful from a real `.app`; shown disabled with an
+explanatory title when running `swift run`'s bare binary, since `SMAppService`
+needs real bundle identity to register anything. Reads live from
+`SMAppService.mainApp.status` rather than a persisted Settings flag, so the
+checkmark can't drift from what System Settings actually shows. Verified for
+real: manually assembled and ad-hoc signed a bundle, ran `register()` (status
+went `notFound → enabled`), then `unregister()` (`enabled → notRegistered`) —
+both confirmed, not just compiled.
 
 **Both axes of the mechanic are wired, and now both have a real source:**
 

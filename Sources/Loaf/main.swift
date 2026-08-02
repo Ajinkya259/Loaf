@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 
 // Loaf is an accessory app: no dock icon, no application menu. She lives on the
 // desktop and is controlled entirely from the drawn paw item in the menu bar
@@ -32,6 +33,41 @@ if let out = ProcessInfo.processInfo.environment["LOAF_SAY_SNAPSHOT"] {
     let ok = MainActor.assumeIsolated { Snapshot.renderSpeechBubble(text: text, to: out) }
     FileHandle.standardError.write(Data((ok ? "wrote \(out)\n" : "snapshot failed\n").utf8))
     exit(ok ? 0 : 1)
+}
+
+// LOAF_LOGIN_ITEM=register|unregister|status exercises SMAppService directly,
+// since there's no way to click the "Launch at login" menu item from a script.
+// Only meaningful run from inside a real .app bundle - see AppDelegate's own
+// `bundled` check for why.
+if let action = ProcessInfo.processInfo.environment["LOAF_LOGIN_ITEM"] {
+    // SMAppService.Status isn't CustomStringConvertible, so the default
+    // interpolation prints "SMAppServiceStatus(rawValue: 3)" instead of
+    // something you can read at a glance.
+    func describe(_ status: SMAppService.Status) -> String {
+        switch status {
+        case .notRegistered: "notRegistered"
+        case .enabled: "enabled"
+        case .requiresApproval: "requiresApproval"
+        case .notFound: "notFound"
+        @unknown default: "unknown(\(status.rawValue))"
+        }
+    }
+    do {
+        switch action {
+        case "register": try SMAppService.mainApp.register()
+        case "unregister": try SMAppService.mainApp.unregister()
+        case "status": break
+        default:
+            FileHandle.standardError.write(Data("unknown action \(action)\n".utf8))
+            exit(1)
+        }
+        FileHandle.standardError.write(Data(
+            "bundlePath=\(Bundle.main.bundlePath) status=\(describe(SMAppService.mainApp.status))\n".utf8))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("failed: \(error)\n".utf8))
+        exit(1)
+    }
 }
 
 // LOAF_ICON=/tmp/paw.png dumps the menu-bar icon, magnified, so it can actually be

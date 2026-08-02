@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ServiceManagement
 
 /// Borderless window that is still allowed to become key, so SwiftUI gestures inside
 /// it reach Loaf even though the app is an accessory with no dock icon.
@@ -388,6 +389,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hydrate.state = settings.hydrationReminders ? .on : .off
         menu.addItem(hydrate)
 
+        // Only meaningful from a real .app bundle - SMAppService.mainApp needs
+        // proper bundle identity to register anything, which `swift run`'s bare
+        // Mach-O binary doesn't have. Shown disabled rather than hidden, same
+        // reasoning as the "no art yet" states: seeing why it's unavailable beats
+        // wondering where it went.
+        let bundled = Bundle.main.bundlePath.hasSuffix(".app")
+        let launchAtLogin = NSMenuItem(
+            title: bundled ? "Launch at login" : "Launch at login — needs the installed app",
+            action: bundled ? #selector(toggleLaunchAtLogin(_:)) : nil,
+            keyEquivalent: "")
+        launchAtLogin.target = self
+        launchAtLogin.isEnabled = bundled
+        // Read live from SMAppService rather than a persisted Settings flag - the
+        // system is the actual source of truth here, and a cached boolean would
+        // drift the moment someone removes her from Login Items in System
+        // Settings instead of from this menu.
+        launchAtLogin.state = (bundled && SMAppService.mainApp.status == .enabled) ? .on : .off
+        menu.addItem(launchAtLogin)
+
         return menu
     }
 
@@ -493,6 +513,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func toggleHydration(_ sender: NSMenuItem) {
         settings.hydrationReminders.toggle()
         sender.state = settings.hydrationReminders ? .on : .off
+    }
+
+    /// Register/unregister with SMAppService rather than a hand-rolled
+    /// LaunchAgent plist - the modern, Apple-recommended way to do this, and
+    /// still a system framework rather than a third-party dependency.
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        do {
+            if SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+                // The system sometimes wants an explicit approval in System
+                // Settings the first time an app registers as a login item -
+                // send them straight there rather than leaving it to silently
+                // not take effect.
+                if SMAppService.mainApp.status == .requiresApproval {
+                    SMAppService.openSystemSettingsLoginItems()
+                }
+            }
+        } catch {
+            if ProcessInfo.processInfo.environment["LOAF_DEBUG"] != nil {
+                FileHandle.standardError.write(Data("launchAtLogin: \(error)\n".utf8))
+            }
+        }
+        sender.state = SMAppService.mainApp.status == .enabled ? .on : .off
     }
 
     @objc private func pickWeight(_ sender: NSMenuItem) {
