@@ -12,6 +12,12 @@ is doing changes her mood.
   Nothing pending → lean and chill.
 - **System load → posture.** CPU or memory struggling → she stops, hunches,
   bristles. Recovers → back to normal.
+- **You step away → she sleeps early.** No keyboard or mouse input for a few
+  minutes and she settles down, rather than pacing the dock all night.
+- **Your Mac wakes up → she waves.** A paw drops down from the menu bar as a
+  "good morning."
+- Random one-liners while she's idle — sarcastic, a little bored, occasionally
+  demanding attention. No LLM behind it (yet) — a curated pool for now.
 - Draggable. Pick her up and she wakes and looks at you; let go and she falls
   back to the dock instead of teleporting.
 
@@ -21,18 +27,33 @@ look is one command, not a re-draw.
 
 ## Quick start
 
+**Run from source** (for development — rebuilds on every launch):
+
 ```bash
 git clone https://github.com/Ajinkya259/Loaf
 cd Loaf
 make run
 ```
 
-That's it — she appears on the dock. `make stop` to quit her, or use the 🐾
-menu-bar item (state picker, weight, size, and a "React to system load"
-toggle live there).
+**Install properly** — a real `Loaf.app` you drag to `/Applications`:
 
 ```bash
-make run                        # build + launch
+make app       # dist/Loaf.app only
+make dist      # dist/Loaf.app + dist/Loaf.dmg
+```
+
+Ad-hoc signed (no Apple Developer ID on this machine yet), so on first launch
+macOS will refuse to open it normally — right-click → Open once, or
+`xattr -dr com.apple.quarantine dist/Loaf.app`.
+
+Either way, she appears on the dock and everything is controlled from the 🐾
+menu-bar item: **Autopilot** (the default — she does everything on her own),
+**Weight** (task load, still hand-set — see [Status](#status)), **Actions**
+(pin a specific pose or gesture by hand), **Settings** (display, size,
+reaction toggles).
+
+```bash
+make run                        # build + launch from source
 make stop                       # quit her
 LOAF_STATE=sit make run         # pin one state for inspection instead of wandering
 ```
@@ -53,8 +74,12 @@ Two independent pieces:
    window plus a SwiftUI character view, running as a menu-bar accessory app
    (no dock icon of its own — she *is* the icon). A small state machine
    (`AppDelegate+Wander.swift`) makes her stroll the dock, pause, walk to a
-   corner, sit, and eventually sleep; `SystemMonitor.swift` watches CPU and
-   memory pressure and interrupts all of that when the machine is struggling.
+   corner, sit, and eventually sleep. Two edge-triggered monitors watch the
+   outside world with no permissions requested: `SystemMonitor.swift` (CPU +
+   memory pressure → stressed) and `UserIdleMonitor.swift` (no keyboard/mouse
+   input → sleeps early). `PawDropView.swift` and `SpeechBubbleView.swift` are
+   separate overlays layered above whatever pose she's in, not poses
+   themselves — a "Paw" greeting on system wake, and random speech bubbles.
 
 8 states currently have art — idle, walk, look, sit (front), sit (profile),
 sleep, stressed, jump — each rendered at 3 body weights, 72 sprites total.
@@ -105,10 +130,24 @@ regenerates the review contact sheets in `blender/previews/`. Always run this
 script — never a single build script alone (see `CLAUDE.md` §3 for why: the
 poses have drifted apart from each other twice that way).
 
+### Packaging the `.app`
+
+```bash
+tools/package.sh          # dist/Loaf.app + dist/Loaf.dmg
+tools/package.sh app      # just the .app
+```
+
+Release build, an icon generated from `front_idle.png` (her front-facing,
+"personality" angle, not profile), and ad-hoc code signing. Picks up a real
+"Developer ID Application" identity from the keychain automatically if one's
+ever added (`LOAF_SIGN_ID` to override) — until then, ad-hoc.
+
 ## Status
 
 Working today: dock stroll → dwell → corner sit → sleep, jumps, dragging,
-CPU/memory-driven stress reactions, 72 sprites across 3 weights and 8 states.
+CPU/memory-driven stress reactions, sleeps early when you step away, a paw
+greeting on system wake, random speech bubbles, a real installable `.app`,
+72 sprites across 3 weights and 8 states.
 
 Not done yet:
 
@@ -116,8 +155,13 @@ Not done yet:
   between the app and the idea it was built for. Planned source is Apple
   Reminders via EventKit (see `CONTEXT.md` for the exact permission to use —
   it's not the same one as Calendar).
-- **No `.app` bundle** — `make run` / `swift build` only, no drag-to-Applications
-  install yet.
+- **The speech bubbles are a fixed line pool, not a real LLM.** An honest
+  stand-in for the "brain layer" from `Idea.md` — the actual integration
+  point (`SpeechEngine.say(_:)`) already takes a specific string, so wiring
+  in a model later doesn't need to touch the display or timing code.
+- **No notarization** on the packaged `.app` — needs an Apple Developer
+  Program membership this project doesn't have. Ad-hoc signed works fine
+  locally; sharing it means a one-time right-click → Open for whoever runs it.
 - Two more moods (`chill`, `wake`) are designed-but-not-built; see `CLAUDE.md`
   §6 for the intent behind them.
 
@@ -127,6 +171,7 @@ Not done yet:
 blender/                Blender build scripts — the source of truth for her model
 Sources/Loaf/            the Swift app
   Resources/sprites/<weight>/   sprites Blender renders directly into
+tools/package.sh         builds the real, installable .app + .dmg
 web/                     a Three.js live-rig previewer, for iterating on motion
                          without a full Blender render (dev tool, not shipped)
 ref/lil-cleo/            reference desktop-pet implementation (gitignored, see CLAUDE.md §5)

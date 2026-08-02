@@ -22,6 +22,7 @@ LOAF_STATE=sleep make run                      # hold one state
 LOAF_SNAPSHOT=/tmp/x.png LOAF_STATE=stressed ./.build/debug/Loaf   # see what the APP draws
 LOAF_DEBUG=1 ./.build/debug/Loaf                # log every CPU/memory sample
 blender/build_all.sh                            # re-render all 72 sprites (~3 min)
+make dist                                       # dist/Loaf.app + dist/Loaf.dmg, installable
 ```
 
 `git tag -l` → `v0.1-six-states`, `v0.2-both-axes`. Both are known-good.
@@ -107,8 +108,14 @@ nagging.
   lil-cleo's `SHOW_FOR` pattern (coffee, popcorn), `wake` wants a morning-stretch
   pose. Re-add as `LoafState` cases once either gets real Blender art — nothing else
   needs to change, the menu picks up a new case automatically.
-- **No `.app` bundle yet.** `swift run` only. `ref/lil-cleo/tools/package.sh` is a
-  working template for the .app + .dmg, including ad-hoc signing.
+- **`make app` / `make dist` build a real `Loaf.app`** (`tools/package.sh`, adapted
+  from `ref/lil-cleo`'s own template) — icon generated from `front_idle.png`,
+  `Info.plist` with `LSUIElement`, ad-hoc signed. No Developer ID identity on this
+  machine, so no notarization step yet; on another Mac the first launch needs
+  right-click → Open once. Verified for real, not just that it builds: launched the
+  packaged binary directly, confirmed `lsappinfo` reports it as `type="UIElement"`
+  (no dock icon), and confirmed sprites resolve from `Loaf_Loaf.bundle` inside the
+  bundle rather than silently falling back to nothing.
 
 ---
 
@@ -143,4 +150,5 @@ human noticed.
 | `Idea.md` | the original brain-dump. Superseded in places |
 | `blender/build_cat.py` | source of truth: model, rig, palette, camera, walk, jump |
 | `Sources/Loaf/LoafState.swift` | the behaviour↔art contract. Start here in the app |
+| `tools/package.sh` | `make app` / `make dist` — builds the real, installable `.app` |
 | `ref/lil-cleo/` | the reference implementation (gitignored; re-clone if missing) |

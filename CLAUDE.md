@@ -84,7 +84,8 @@ blender/
                        without opening Blender.
 
 Package.swift          SwiftPM executable, macOS 14+, zero dependencies
-Makefile               make run / make cat / make help
+Makefile               make run / make cat / make app / make dist / make help
+tools/package.sh       builds the real, installable .app + .dmg (§5)
 Sources/Loaf/
   main.swift           entry point; accessory app, no dock icon
   AppDelegate.swift    window, menu-bar item, geometry
@@ -302,6 +303,17 @@ app-driven arc; eight states across three body weights (72 sprites); CPU/memory
 reactions; sleeps early when you've stepped away; a "Paw" gesture that also fires on
 system wake; random speech-bubble one-liners while idle. 160×128pt at scale 1.0,
 ~1.7% CPU, ~90MB RSS, **zero permissions requested**.
+
+**`make app` / `make dist` build a real, installable `Loaf.app`** via
+`tools/package.sh` — adapted from `ref/lil-cleo`'s own template, not written from
+scratch. Icon comes from `front_idle.png` (front, not profile — an app icon is a
+personality moment, per §2's angle rule) composited onto a soft cream-to-peach
+backdrop in her own palette, not a hand-picked new colourway. Ad-hoc signed: no
+Developer ID Application identity lives on this machine, only an unrelated Apple
+Development cert belonging to a different project's author, which the signing
+lookup correctly ignores (it only matches "Developer ID Application"). No
+notarization step for the same reason — that needs an Apple Developer Program
+membership this project doesn't have.
 
 ### The two axes of the mechanic
 
