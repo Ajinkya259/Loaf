@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let engine = CatEngine()
     lazy var systemMonitor = SystemMonitor()
     lazy var userIdleMonitor = UserIdleMonitor()
+    lazy var taskLoadMonitor = TaskLoadMonitor()
     let pawDropEngine = PawDropEngine()
     let speechEngine = SpeechEngine()
 
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var pawDropWindow: NSWindow!
     var speechWindow: NSWindow!
     var speechTimer: Timer?
+    var hydrationTimer: Timer?
 
     // MARK: Geometry
 
@@ -60,6 +62,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var restCorner: CGFloat = 1
     var cornerTargetX: CGFloat = 0
     var restStartedAt = Date()
+
+    /// A brief interaction-triggered hold, set by `greet()`. While in the future,
+    /// `stepWander` skips its normal state-setting entirely - without this, the very
+    /// next 50Hz tick's `strollStep`/idle logic would stomp the `.look`/`.sit` chosen
+    /// a moment ago before it was ever visible on screen.
+    var distractedUntil = Date.distantPast
+    var lastGreetAt = Date.distantPast
 
     enum Activity { case strolling, toCorner, resting, jumping, falling }
 
@@ -135,6 +144,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// screen, not to derive from an assumed stride length.
     var walkSpeed: CGFloat { 1.1 * CGFloat(settings.scale) }
 
+    /// How long a normal stroll lasts before she heads for a corner to rest and
+    /// eventually sleep - about 4 minutes, not the 20-40s it started at. Used at both
+    /// the initial launch and the recurring "get up and go again" cycle in
+    /// stepWander's `.resting` case. NOT used for the shorter recovery bursts after
+    /// being interrupted (stress clearing, idle clearing, landing a jump, falling) -
+    /// those stay short on purpose, since forcing a full 4-minute walk right after an
+    /// interruption would feel like the interruption never happened.
+    static let strollDuration: ClosedRange<Double> = 210...270
+
     // MARK: Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -143,6 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupPawDropWindow()
         setupSpeechWindow()
         scheduleNextPing()
+        scheduleNextHydrationReminder()
 
         // Test hook, mirroring lil-cleo's CLEO_ACTION: `LOAF_STATE=sit swift run Loaf`
         // holds one state centred with no wandering. This is how each state gets
@@ -161,7 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 engine.pin(s)
             }
         } else if settings.wanders {
-            beginStroll(seconds: Double.random(in: 20...40))
+            beginStroll(seconds: Double.random(in: Self.strollDuration))
             startWandering()
         }
 
@@ -185,6 +204,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if !idle { beginStroll(seconds: Double.random(in: 15...30)) }
         }
         userIdleMonitor.start()
+
+        // The real task-load source: incomplete Reminders -> her weight. Requests
+        // access once; if denied, this callback simply never fires again and the
+        // Weight menu keeps working exactly as it always has.
+        taskLoadMonitor.onChange = { [weak self] weight in
+            self?.settings.weight = weight
+        }
+        taskLoadMonitor.start()
 
         // The "morning greeting" from CLAUDE.md's state model, minus the text she
         // doesn't have anything to say yet - the gesture alone reads as a greeting
@@ -355,6 +382,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         talk.state = settings.letHerTalk ? .on : .off
         menu.addItem(talk)
 
+        let hydrate = NSMenuItem(title: "Remind me to drink water",
+                                 action: #selector(toggleHydration(_:)), keyEquivalent: "")
+        hydrate.target = self
+        hydrate.state = settings.hydrationReminders ? .on : .off
+        menu.addItem(hydrate)
+
         return menu
     }
 
@@ -396,6 +429,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         speechEngine.say()
     }
 
+    /// Hover or a plain click/tap on her (`CatView.onGreet`), not a drag.
+    ///
+    /// Two things this exists to fix. First, waking her the instant you look at her
+    /// rather than waiting up to 5s for `UserIdleMonitor`'s next poll - a real click
+    /// resets the system idle clock too, so she'd wake on her own eventually, but
+    /// "eventually" reads as broken when you're staring right at her.
+    ///
+    /// Second, this is the only place `.sit` (front) gets picked automatically. The
+    /// corner-rest deliberately never uses it - "she arrives walking in profile, and
+    /// swinging round to face the camera just to sit down is something nothing alive
+    /// does" (AppDelegate+Wander.swift) - and that reasoning holds for every OTHER
+    /// automatic trigger too. It doesn't hold here, because you just looked at her
+    /// directly; turning to face you is the correct response to that, not a violation
+    /// of it. `.look` already had exactly this exception for dragging.
+    func greet() {
+        let now = Date()
+        guard now.timeIntervalSince(lastGreetAt) > Self.greetCooldown else { return }
+        lastGreetAt = now
+
+        if engine.userIdle {
+            engine.userIdle = false
+            beginStroll(seconds: Double.random(in: 15...30))
+        }
+
+        if engine.autopilot, !engine.overloaded {
+            engine.facing = 1
+            engine.setAuto(Bool.random() ? .look : .sit)
+            distractedUntil = now.addingTimeInterval(3.0)
+        }
+
+        repositionSpeechWindow()
+        speechEngine.say(SpeechEngine.greetingLines.randomElement())
+    }
+
+    /// However fast someone jiggles the mouse over her, a greeting every frame would
+    /// be noise, not personality.
+    private static let greetCooldown: TimeInterval = 12
+
     @objc private func pickLayer(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         settings.layer = id
@@ -417,6 +488,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func toggleTalk(_ sender: NSMenuItem) {
         settings.letHerTalk.toggle()
         sender.state = settings.letHerTalk ? .on : .off
+    }
+
+    @objc private func toggleHydration(_ sender: NSMenuItem) {
+        settings.hydrationReminders.toggle()
+        sender.state = settings.hydrationReminders ? .on : .off
     }
 
     @objc private func pickWeight(_ sender: NSMenuItem) {
@@ -448,7 +524,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         window.contentView = NSHostingView(
             rootView: CatView(settings: settings, engine: engine,
                               onDrag: { [weak self] in self?.dragTo($0) },
-                              onDrop: { [weak self] in self?.dropped() })
+                              onDrop: { [weak self] in self?.dropped() },
+                              onGreet: { [weak self] in self?.greet() })
         )
         characterWindow = window
 
@@ -570,9 +647,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         defer { scheduleNextPing() }
         guard settings.letHerTalk, engine.autopilot, !engine.held,
               !engine.overloaded, !engine.userIdle,
-              !engine.state.isLocomotion, !engine.state.isOneShot else { return }
+              !engine.state.isLocomotion, !engine.state.isOneShot,
+              speechEngine.message == nil else { return }
         repositionSpeechWindow()
         speechEngine.say()
+    }
+
+    /// Water-break nudges: a paw drop paired with a line from
+    /// `SpeechEngine.hydrationLines`, roughly every 1-2 hours. A separate timer and a
+    /// separate toggle (`Settings.hydrationReminders`) from the personality pings -
+    /// this is a recurring nag with a practical point, not ambient chatter, and
+    /// someone may want one without the other.
+    private func scheduleNextHydrationReminder() {
+        hydrationTimer?.invalidate()
+        // LOAF_HYDRATION_INTERVAL overrides this in seconds, for testing without
+        // actually waiting an hour or two.
+        let delay = Double(ProcessInfo.processInfo.environment["LOAF_HYDRATION_INTERVAL"] ?? "")
+            ?? Double.random(in: 3600...7200)
+        let t = Timer(timeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.maybeRemindHydration() }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        hydrationTimer = t
+    }
+
+    private func maybeRemindHydration() {
+        defer { scheduleNextHydrationReminder() }
+        let ok = settings.hydrationReminders && engine.autopilot && !engine.held
+            && !engine.overloaded && !engine.userIdle
+            && !engine.state.isLocomotion && !engine.state.isOneShot
+            && speechEngine.message == nil
+        if ProcessInfo.processInfo.environment["LOAF_DEBUG"] != nil {
+            FileHandle.standardError.write(Data("hydration: tick, firing=\(ok)\n".utf8))
+        }
+        guard ok else { return }
+        repositionSpeechWindow()
+        speechEngine.say(SpeechEngine.hydrationLines.randomElement())
+        repositionPawDropWindow()
+        pawDropEngine.trigger()
     }
 
     /// Window level and Space behaviour, from `Settings`.

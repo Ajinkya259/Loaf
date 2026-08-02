@@ -8,16 +8,20 @@ is doing changes her mood.
   <img src="docs/screenshot.png" width="480" alt="Loaf, idle, shown on both a light and a dark background">
 </p>
 
-- **Task load → body size.** More (or heavier) tasks queued → she gets fatter.
-  Nothing pending → lean and chill.
+- **Task load → body size, live.** More incomplete reminders in Reminders.app →
+  she gets fatter. Nothing pending → lean and chill.
 - **System load → posture.** CPU or memory struggling → she stops, hunches,
   bristles. Recovers → back to normal.
 - **You step away → she sleeps early.** No keyboard or mouse input for a few
   minutes and she settles down, rather than pacing the dock all night.
 - **Your Mac wakes up → she waves.** A paw drops down from the menu bar as a
   "good morning."
+- **Every 1-2 hours, a water-break nudge** — the same paw drop, paired with a
+  reminder to go drink some water.
 - Random one-liners while she's idle — sarcastic, a little bored, occasionally
   demanding attention. No LLM behind it (yet) — a curated pool for now.
+- **Hover or click her directly and she greets you** — an immediate "Hey." and
+  a glance in your direction, rather than waiting for the next idle check.
 - Draggable. Pick her up and she wakes and looks at you; let go and she falls
   back to the dock instead of teleporting.
 
@@ -73,13 +77,17 @@ Two independent pieces:
 2. **The app** (`Sources/Loaf/`) — a SwiftPM executable: an AppKit borderless
    window plus a SwiftUI character view, running as a menu-bar accessory app
    (no dock icon of its own — she *is* the icon). A small state machine
-   (`AppDelegate+Wander.swift`) makes her stroll the dock, pause, walk to a
-   corner, sit, and eventually sleep. Two edge-triggered monitors watch the
-   outside world with no permissions requested: `SystemMonitor.swift` (CPU +
-   memory pressure → stressed) and `UserIdleMonitor.swift` (no keyboard/mouse
-   input → sleeps early). `PawDropView.swift` and `SpeechBubbleView.swift` are
-   separate overlays layered above whatever pose she's in, not poses
-   themselves — a "Paw" greeting on system wake, and random speech bubbles.
+   (`AppDelegate+Wander.swift`) makes her stroll the dock (~4 minutes) before
+   pausing, walking to a corner, sitting, and eventually sleeping. Three
+   edge-triggered monitors watch the outside world: `SystemMonitor.swift`
+   (CPU + memory pressure → stressed), `UserIdleMonitor.swift` (no
+   keyboard/mouse input → sleeps early) — both permission-free — and
+   `TaskLoadMonitor.swift` (incomplete Reminders → her weight, the one
+   permission the app asks for). `PawDropView.swift` and
+   `SpeechBubbleView.swift` are separate overlays layered above whatever pose
+   she's in, not poses themselves — a "Paw" greeting on system wake and every
+   1-2h as a water-break nudge, and speech bubbles either random while idle
+   or immediate when you hover or click her directly.
 
 8 states currently have art — idle, walk, look, sit (front), sit (profile),
 sleep, stressed, jump — each rendered at 3 body weights, 72 sprites total.
@@ -101,8 +109,9 @@ a folder of PNGs. She runs all day, every day, so every dependency would be
 memory held the whole time, launch cost on every login, and supply-chain
 surface for something that doesn't need it.
 
-**Zero permissions requested**, too — no Accessibility, no Reminders/Calendar
-(yet — see [Status](#status)).
+**Zero third-party dependencies** stays true; **one permission requested** now —
+Reminders, for task load (no Accessibility, no Calendar, no network). Deny it and
+she just keeps using whatever weight the menu last set, no re-prompting.
 
 ### Resource footprint
 
@@ -146,15 +155,12 @@ ever added (`LOAF_SIGN_ID` to override) — until then, ad-hoc.
 
 Working today: dock stroll → dwell → corner sit → sleep, jumps, dragging,
 CPU/memory-driven stress reactions, sleeps early when you step away, a paw
-greeting on system wake, random speech bubbles, a real installable `.app`,
-72 sprites across 3 weights and 8 states.
+greeting on system wake and every 1-2h as a water-break nudge, random speech
+bubbles, an immediate greeting on hover/click, task load driven live by
+Reminders, a real installable `.app`, 72 sprites across 3 weights and 8 states.
 
 Not done yet:
 
-- **Task load is still set by hand** from the menu — the one thing standing
-  between the app and the idea it was built for. Planned source is Apple
-  Reminders via EventKit (see `CONTEXT.md` for the exact permission to use —
-  it's not the same one as Calendar).
 - **The speech bubbles are a fixed line pool, not a real LLM.** An honest
   stand-in for the "brain layer" from `Idea.md` — the actual integration
   point (`SpeechEngine.say(_:)`) already takes a specific string, so wiring

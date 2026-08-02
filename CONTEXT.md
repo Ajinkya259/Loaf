@@ -14,13 +14,16 @@ make run                    # build + launch; she appears on the dock
 make stop
 ```
 
-Everything is controlled from the **🐾** in the menu bar: pick a state, Weight, Size,
-Show, React to system load.
+Everything is controlled from the **🐾** in the menu bar — four rows: Autopilot,
+Weight (still the manual override if Reminders access is denied), Actions (every
+pose/gesture by hand), Settings.
 
 ```bash
 LOAF_STATE=sleep make run                      # hold one state
 LOAF_SNAPSHOT=/tmp/x.png LOAF_STATE=stressed ./.build/debug/Loaf   # see what the APP draws
-LOAF_DEBUG=1 ./.build/debug/Loaf                # log every CPU/memory sample
+LOAF_DEBUG=1 ./.build/debug/Loaf                # log CPU/memory/idle/paw/hydration/taskLoad
+LOAF_IDLE_THRESHOLD=8 ./.build/debug/Loaf       # seconds, not the real ~180s, for testing
+LOAF_HYDRATION_INTERVAL=8 ./.build/debug/Loaf   # seconds, not the real ~1-2h, for testing
 blender/build_all.sh                            # re-render all 72 sprites (~3 min)
 make dist                                       # dist/Loaf.app + dist/Loaf.dmg, installable
 ```
@@ -31,12 +34,22 @@ make dist                                       # dist/Loaf.app + dist/Loaf.dmg,
 
 ## What works
 
-Dock stroll → dwell → corner sit → sleep. Jumps (about one stroll leg in seven).
-Draggable — picking her up wakes her, and she falls back to the dock when dropped.
+Dock stroll (~4 minutes now, was 20-40s) → dwell → corner sit → sleep. Jumps (about
+one stroll leg in seven). Draggable — picking her up wakes her, and she falls back to
+the dock when dropped. Hover or click her directly and she greets you (`AppDelegate.
+greet()`) — wakes her immediately if she was idle-asleep rather than waiting up to 5s
+for the next poll, shows a short greeting bubble, and briefly turns to `.look` or
+`.sit` (front). That's the only place `.sit` (front) is ever picked automatically —
+every OTHER trigger respects "never turn to face the camera mid-stroll," but turning
+to face someone who just looked at you directly is the correct response to that, not
+a violation of it.
+
 **Paw** in the menu is the same gesture (big menu-bar icon, drops down, double
-pat, `PawDropView.swift`) — now also fires on its own when the Mac wakes from
-sleep, standing in for the "morning greeting" from CLAUDE.md §6 with no text
-needed for it to read as one.
+pat, `PawDropView.swift`) — also fires on its own when the Mac wakes from sleep
+(the "morning greeting" from CLAUDE.md §6, no text needed for it to read as one),
+and every 1-2 hours paired with a water-reminder line (`Settings.hydrationReminders`,
+its own toggle since a health nag and ambient personality are different enough in
+kind that someone may want one without the other).
 
 **Speech bubbles** (`SpeechBubbleView.swift`) — a random one-liner from a curated
 pool, floated above her head while she's idle (not walking, not jumping, not
@@ -49,48 +62,47 @@ layer": a fixed pool, not real understanding, but enough to feel alive.
 **Eight states × three weights = 72 sprites.** idle, walk, jump, sit (front), sit
 (profile), sleep, stressed, look.
 
-**Both axes of the mechanic are wired, but only one has a real source:**
+**Both axes of the mechanic are wired, and now both have a real source:**
 
 | Signal | Changes | Source |
 |---|---|---|
 | Machine load | her posture (`stressed`) | **live** — CPU + memory, edge-triggered |
 | User presence | sleep, early | **live** — `UserIdleMonitor`, no input for ~3min |
-| Task load | her body (weight) | **hand-set from the menu** |
+| Task load | her body (weight) | **live** — `TaskLoadMonitor`, incomplete Reminders |
 
 Machine load outranks user-idle if both are true at once (`CatEngine.userIdle`) - a
 background job left running while you stepped away still reads as stressed, not
 asleep.
 
-Zero third-party dependencies. Zero permissions requested — `UserIdleMonitor` uses
-`CGEventSource`, which needs none, same as `SystemMonitor`. ~1.7% CPU, ~90MB RSS.
+Zero third-party dependencies. **One** permission requested — Reminders, for task load.
+`UserIdleMonitor`/`SystemMonitor` still need none. ~1.7% CPU, ~90MB RSS.
 
 ---
 
-## The next job: give task load a real source
+## Task load: done, via `TaskLoadMonitor.swift`
 
-This is the only thing standing between the app and the idea it was built for. Everything
-downstream already exists — `Settings.weight` drives all 72 sprites, so this is purely
-about producing a number.
+The thing every doc in this project pointed at as "the next job" for weeks. Incomplete
+Reminders → `settings.weight`, `0-2 → lean`, `3-6 → normal`, `7+ → chonk`, exactly the
+thresholds this section used to recommend before anything implemented them.
 
-Recommended source is **Apple Reminders via EventKit**: no OAuth, no backend, no task-entry
-UI to build, and the sibling `~/Desktop/untitled/FlyThrough` already proves the EventKit
-pattern in Swift.
+**The permission trap this section used to warn about, confirmed for real**: Reminders
+is genuinely a different key from Calendar — `requestFullAccessToReminders()` +
+`NSRemindersFullAccessUsageDescription`, not the Calendar pair FlyThrough uses.
 
-1. `TaskLoad.swift` — count incomplete reminders due today, weight by priority.
-2. Map to a weight. Suggested start: `0–2 → lean`, `3–6 → normal`, `7+ → chonk`.
-3. Set `settings.weight`. That is the entire integration.
-4. Keep the menu picker as a manual override — it is the only way to check the art
-   without editing your real todo list.
+**The trap this section DIDN'T see coming**: `swift run`/`swift build` produce a bare
+Mach-O binary with no `.app` bundle, so there is no Info.plist for TCC to read the
+usage-description string from at all — and without one, requesting access doesn't
+degrade gracefully, it crashes outright. Fixed by embedding `Info.plist` directly into
+the binary's own `__TEXT,__info_plist` section via linker flags in `Package.swift`
+(`tools/package.sh`'s packaged `.app` gets its own separate copy of the same key).
+Confirmed the embedding actually worked by extracting the section from the built
+binary and diffing it against the source file, and confirmed the request itself works
+by watching for `UserNotificationCenter.app` (the process that renders the real
+permission dialog) rather than assuming a lack of crash meant success.
 
-**The one thing that will trip you up:** Reminders is *not* the same permission as
-Calendar. FlyThrough uses `requestFullAccessToEvents()` +
-`NSCalendarsFullAccessUsageDescription`. You need
-**`requestFullAccessToReminders()` + `NSRemindersFullAccessUsageDescription`**. Copying
-FlyThrough's code verbatim will compile and then silently return no reminders.
-
-Note this is also the first thing that asks the user for a permission. Worth deciding
-whether she degrades gracefully (stay at `normal`, never prompt again) rather than
-nagging.
+**Degrades gracefully, exactly as planned**: if access is denied, `onChange` simply
+never fires again, and the Weight menu keeps working as a manual override, same as
+before this file existed. No re-prompt loop, no nagging.
 
 ---
 
@@ -150,5 +162,6 @@ human noticed.
 | `Idea.md` | the original brain-dump. Superseded in places |
 | `blender/build_cat.py` | source of truth: model, rig, palette, camera, walk, jump |
 | `Sources/Loaf/LoafState.swift` | the behaviour↔art contract. Start here in the app |
+| `Sources/Loaf/TaskLoadMonitor.swift` | the real task-load source — Reminders → weight |
 | `tools/package.sh` | `make app` / `make dist` — builds the real, installable `.app` |
 | `ref/lil-cleo/` | the reference implementation (gitignored; re-clone if missing) |

@@ -84,6 +84,8 @@ blender/
                        without opening Blender.
 
 Package.swift          SwiftPM executable, macOS 14+, zero dependencies
+Info.plist              embedded into the dev binary via linker flags (§5) — the
+                       only reason it exists is TaskLoadMonitor's Reminders prompt
 Makefile               make run / make cat / make app / make dist / make help
 tools/package.sh       builds the real, installable .app + .dmg (§5)
 Sources/Loaf/
@@ -97,6 +99,7 @@ Sources/Loaf/
   Settings.swift       persisted scale + wander toggle
   SystemMonitor.swift  edge-triggered CPU + memory pressure
   UserIdleMonitor.swift   edge-triggered keyboard/mouse idle, no permission needed
+  TaskLoadMonitor.swift   the real task-load source — Reminders → weight (§5)
   MoodMarks.swift      the "z"s and the "!" drawn above her
   Snapshot.swift       LOAF_SNAPSHOT — rasterise the real view to a PNG
   MenuBarIcon.swift    the drawn paw template image for the menu-bar item
@@ -298,11 +301,13 @@ The zero-dependency rule is deliberate and worth holding. She runs all day, ever
 every dependency is memory she holds the whole time, launch time on every login, and
 supply chain for something that needs nothing but AppKit, SwiftUI and a folder of PNGs.
 
-**Working today:** window on the dock; stroll → dwell → corner sit → sleep; jump with an
-app-driven arc; eight states across three body weights (72 sprites); CPU/memory
-reactions; sleeps early when you've stepped away; a "Paw" gesture that also fires on
-system wake; random speech-bubble one-liners while idle. 160×128pt at scale 1.0,
-~1.7% CPU, ~90MB RSS, **zero permissions requested**.
+**Working today:** window on the dock; stroll (~4min) → dwell → corner sit → sleep;
+jump with an app-driven arc; eight states across three body weights (72 sprites);
+CPU/memory reactions; sleeps early when you've stepped away; a "Paw" gesture that
+also fires on system wake and every 1-2h as a water-break nudge; random speech-bubble
+one-liners while idle; hover/click her for an immediate greeting; task load driven
+live by incomplete Reminders. 160×128pt at scale 1.0, ~1.7% CPU, ~90MB RSS,
+**one permission requested** — Reminders, for task load.
 
 **`make app` / `make dist` build a real, installable `Loaf.app`** via
 `tools/package.sh` — adapted from `ref/lil-cleo`'s own template, not written from
@@ -314,6 +319,18 @@ Development cert belonging to a different project's author, which the signing
 lookup correctly ignores (it only matches "Developer ID Application"). No
 notarization step for the same reason — that needs an Apple Developer Program
 membership this project doesn't have.
+
+**Requesting Reminders access needed an Info.plist that `swift run` doesn't have.**
+A `.app` bundle carries its own; a bare `swift build` binary carries nothing, and
+without the usage-description string TCC expects, requesting access doesn't
+degrade gracefully — it crashes immediately. Fixed with `Package.swift`'s
+`linkerSettings`, embedding the root `Info.plist` straight into the binary's
+`__TEXT,__info_plist` section (`-Xlinker -sectcreate ...`), which is what
+`NSBundle.main` reads even with no bundle wrapping the executable at all.
+Confirmed working two ways, not assumed: extracted the section back out of the
+built binary and diffed it against the source file, then watched for
+`UserNotificationCenter.app` (the process that actually renders the permission
+dialog) to confirm the request reached the OS rather than silently failing.
 
 ### The two axes of the mechanic
 
@@ -336,10 +353,19 @@ belly dropping (the back line stays pinned and the body grows downward, so her l
 appear to shorten); **front** is pure width; the **profile sit** swells in Y, because
 there Y is screen-width.
 
-**Task load is still set by hand** from the Weight menu. EventKit Reminders is the next
-step — note it needs `requestFullAccessToReminders()` and
-`NSRemindersFullAccessUsageDescription`, a *different* permission from FlyThrough's
-calendar access.
+**Task load is live**, via `TaskLoadMonitor.swift`: incomplete Reminders →
+`settings.weight`, `requestFullAccessToReminders()` +
+`NSRemindersFullAccessUsageDescription` — a *different* permission from FlyThrough's
+calendar access, and the one thing worth double-checking if this is ever ported
+elsewhere. The Weight menu remains a manual override for whenever access is denied
+or you just want to check the art without editing your real Reminders.
+
+A trap this needed that FlyThrough didn't: `swift run`/`swift build` produce a bare
+binary with no `.app` bundle, so there is no Info.plist for TCC to read the usage
+string from — and without one, requesting access crashes outright rather than
+degrading gracefully. Fixed by embedding `Info.plist` into the binary's own
+`__TEXT,__info_plist` section via `Package.swift`'s `linkerSettings` (§5 has the
+packaging side of this — the `.app` gets its own separate copy of the same key).
 
 ### Marks drawn above her
 
@@ -430,12 +456,11 @@ rig bones — the earlier note that it was "blocked on ear bones" assumed posing
 the standing rig, which was wrong: poses are separate builds). What's still
 missing is triggering it from anything other than `SystemMonitor`.
 
-Task-load source is still open. Recommendation: Apple Reminders via EventKit — no
-OAuth, no backend, and the sibling FlyThrough project already proves the pattern.
-Note Reminders needs `requestFullAccessToReminders()` +
-`NSRemindersFullAccessUsageDescription`, which is a *different* permission from
-FlyThrough's calendar access. Ship a manual 0–3 load override first regardless;
-it's the debug affordance you want anyway.
+Task-load source is done: `TaskLoadMonitor.swift`, Apple Reminders via EventKit, no
+OAuth, no backend. The manual override this section used to recommend shipping
+first turned out to be worth keeping permanently, not just as a bootstrap step —
+it's still how the art gets checked without editing a real Reminders list, and it's
+what she falls back to if access is ever denied.
 
 ---
 

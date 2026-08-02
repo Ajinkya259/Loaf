@@ -19,6 +19,9 @@ struct CatView: View {
     var onDrag: ((CGSize) -> Void)?
     var onDrop: (() -> Void)?
 
+    /// Hover or a plain click/tap - not a drag. See AppDelegate.greet().
+    var onGreet: (() -> Void)?
+
     /// 8 frames at 6.5fps is a 1.23s walk cycle. Inherited from lil-cleo, which tuned
     /// it against a real mocap walk, so it's a better starting point than a guess.
     /// Per-state rates live on `LoafState.fps`; this one drives the procedural bob.
@@ -64,6 +67,13 @@ struct CatView: View {
                 .onChanged { onDrag?($0.translation) }
                 .onEnded { _ in onDrop?() }
         )
+        // `simultaneousGesture`, not `.onTapGesture` bare: a plain tap gesture placed
+        // alongside `.gesture()` can get swallowed by the drag recognizer's
+        // exclusivity. This runs alongside it instead of competing with it - a real
+        // click never satisfies the drag's 2pt minimum distance anyway, so there's no
+        // double-firing to worry about.
+        .simultaneousGesture(TapGesture().onEnded { onGreet?() })
+        .onHover { hovering in if hovering { onGreet?() } }
     }
 
     /// Which frame to draw. Kept out of the `@ViewBuilder` below, which can't hold

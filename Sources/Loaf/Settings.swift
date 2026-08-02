@@ -60,6 +60,16 @@ final class Settings: ObservableObject {
         didSet { UserDefaults.standard.set(letHerTalk, forKey: "loaf.letHerTalk") }
     }
 
+    /// Water-break nudges (paw drop + a speech bubble, every 1-2h). Its own toggle,
+    /// separate from `letHerTalk` - personality quips and a recurring health nudge are
+    /// different enough in kind that someone may want one without the other, and a
+    /// nag you can't turn off individually is exactly the kind of thing that gets an
+    /// app force-quit.
+    @Published var hydrationReminders: Bool =
+        UserDefaults.standard.object(forKey: "loaf.hydrationReminders") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(hydrationReminders, forKey: "loaf.hydrationReminders") }
+    }
+
     /// How heavy she is, which is the app's core signal made visible.
     ///
     /// Driven by task load once there is a task source; until then it is set by hand

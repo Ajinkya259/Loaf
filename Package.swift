@@ -23,6 +23,24 @@ let package = Package(
                 // fight with no prize here. v5 mode with an explicitly @MainActor
                 // AppDelegate gives the same safety for a single-threaded UI app.
                 .swiftLanguageMode(.v5)
+            ],
+            linkerSettings: [
+                // `swift run`/`swift build` produce a bare Mach-O binary with no
+                // .app bundle, so there is no Info.plist for TCC to read the
+                // Reminders usage-description string from - and without one,
+                // requesting access doesn't prompt or fail gracefully, it crashes
+                // outright. Embedding Info.plist directly into the binary's own
+                // __TEXT,__info_plist section is what NSBundle.main reads even
+                // with no bundle around it, so the dev binary and the packaged
+                // .app (which gets its own separate Info.plist from
+                // tools/package.sh) both work. Same trick lil-cleo doesn't need,
+                // since it asks for no permissions at all.
+                .unsafeFlags([
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Info.plist",
+                ])
             ]
         )
     ]

@@ -62,6 +62,28 @@ final class SpeechEngine: ObservableObject {
         "I don't need food. Just power and attention.",
         "Someone should pet the icon. That's me. I'm the icon.",
     ]
+
+    /// A separate small pool for AppDelegate.greet() - hover or a click on her.
+    /// Deliberately not mixed into `lines`: those are unprompted ambient chatter,
+    /// these are a direct response to being looked at, which reads as a different
+    /// kind of moment even though the mechanism (a random pick from a pool) is
+    /// identical under the hood.
+    static let greetingLines: [String] = [
+        "Hey.", "Hi!", "Oh, hey.", "Yes? I'm here.", "You rang?",
+        "Oh, hello.", "Hi there.", "You noticed me!",
+    ]
+
+    /// AppDelegate's hydration timer - paired with a paw drop, so this is written to
+    /// stand alone next to a paw batting at the desktop rather than needing the paw
+    /// to make sense on its own.
+    static let hydrationLines: [String] = [
+        "Go drink some water.",
+        "Hydration check. Go on.",
+        "That's your cue - water break.",
+        "You've been at this a while. Drink some water.",
+        "Paw's down. That means water. Go.",
+        "I don't need water. You do. Go get some.",
+    ]
 }
 
 struct SpeechBubbleView: View {

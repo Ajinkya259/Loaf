@@ -67,6 +67,14 @@ extension AppDelegate {
             return
         }
 
+        // A brief interaction-triggered hold (AppDelegate.greet()). Without this the
+        // very next tick's strollStep/idle setAuto call would stomp the .look/.sit
+        // chosen a moment ago before it was ever visible.
+        if Date() < distractedUntil {
+            place(loafX, y)
+            return
+        }
+
         switch activity {
         case .strolling:
             strollStep(minX: minX, maxX: maxX, y: y)
@@ -103,7 +111,7 @@ extension AppDelegate {
                 engine.setAuto(.sleep)
             }
             if rested > Double.random(in: 30...50) {
-                beginStroll(seconds: Double.random(in: 20...40))
+                beginStroll(seconds: Double.random(in: AppDelegate.strollDuration))
             }
         }
     }

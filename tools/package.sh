@@ -101,6 +101,12 @@ cat > "$APP/Contents/Info.plist" <<PLIST
          flash before the code gets a chance to run. -->
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <!-- Keep this in sync with the root Info.plist, which is the one embedded
+         into the swift run/swift build dev binary (see Package.swift's
+         linkerSettings) - the packaged .app gets its own separate copy here
+         rather than reusing that file directly. -->
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>Loaf reads how many reminders are still open so her body can reflect how much work is queued.</string>
 </dict>
 </plist>
 PLIST
