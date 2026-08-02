@@ -77,8 +77,8 @@ struct SpeechBubbleView: View {
         ZStack(alignment: .bottom) {
             if let message = engine.message {
                 Text(message)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Palette.ink)
+                    .font(.system(size: 12.5, weight: .regular, design: .rounded))
+                    .foregroundStyle(Palette.ink.opacity(0.75))
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -86,12 +86,12 @@ struct SpeechBubbleView: View {
                     .padding(.horizontal, 14)
                     .padding(.top, 10)
                     .padding(.bottom, 10 + BubbleShape.tailHeight)
-                    .background(BubbleShape().fill(Palette.cream))
+                    .background(BubbleShape().fill(Palette.cream.opacity(0.9)))
                     .overlay(
-                        BubbleShape().stroke(Palette.coat,
-                            style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                        BubbleShape().stroke(Palette.coat.opacity(0.3),
+                            style: StrokeStyle(lineWidth: 1.0, lineCap: .round, lineJoin: .round))
                     )
-                    .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 3)
+                    .shadow(color: .black.opacity(0.06), radius: 2.5, x: 0, y: 1)
                     .transition(.opacity.combined(with: .scale(scale: 0.85, anchor: .bottom)))
             }
         }
