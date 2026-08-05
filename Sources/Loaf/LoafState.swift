@@ -2,8 +2,8 @@ import Foundation
 
 /// Every state Loaf can be in.
 ///
-/// This enum is the **renderer-agnostic contract** between her behaviour and her art,
-/// the same role `Emotion.swift` plays in lil-cleo. It names *states*, never pictures:
+/// This enum is the **renderer-agnostic contract** between her behaviour and her art.
+/// It names *states*, never pictures:
 /// behaviour code says `.sit`, and only `sprite` knows that lives in `sit.png`.
 ///
 /// Cases exist here before their art does. `available` asks the bundle at runtime
@@ -55,8 +55,8 @@ enum LoafState: String, CaseIterable, Identifiable {
 
     /// True if this state is drawn in profile.
     ///
-    /// **Profile is for locomotion, front is for personality** — lil-cleo's rule, and
-    /// mostly ours. `sitSide` is the deliberate exception: she arrives at a corner
+    /// **Profile is for locomotion, front is for personality** — mostly.
+    /// `sitSide` is the deliberate exception: she arrives at a corner
     /// walking in profile, and turning 90° to face the camera just to sit down is
     /// something nothing alive does.
     ///

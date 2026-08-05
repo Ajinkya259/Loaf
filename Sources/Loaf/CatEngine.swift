@@ -7,7 +7,7 @@ import SwiftUI
 /// her). `pinned` settles it — when you pick a state from the menu it wins outright
 /// and the wander loop's updates are dropped on the floor until you hand control back.
 ///
-/// This is lil-cleo's `autopilot` idea, narrowed to the one thing Phase 1 needs.
+/// An autopilot, narrowed to the one thing Phase 1 needs.
 @MainActor
 final class CatEngine: ObservableObject {
 

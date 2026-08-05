@@ -6,7 +6,7 @@ import ServiceManagement
 // (MenuBarIcon.swift). Setting this before `run()` is what stops a second,
 // redundant dock icon appearing next to her.
 
-// Headless snapshot mode, mirroring lil-cleo's CLEO_RENDER: rasterise the real
+// Headless snapshot mode: rasterise the real
 // SwiftUI view and exit. The only way to see what the app draws rather than what
 // Blender rendered.
 if let out = ProcessInfo.processInfo.environment["LOAF_SNAPSHOT"] {

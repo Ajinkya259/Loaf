@@ -23,7 +23,7 @@ enum Sprites {
     /// launched. SwiftPM's generated `Bundle.module` only looks in the .app root and
     /// the absolute dev build path, so it cannot see a bundle placed in
     /// `Contents/Resources/` by a packaging script — check there first, then fall back
-    /// to `.module` for `swift run`. lil-cleo hit this exact problem.
+    /// to `.module` for `swift run`.
     private static let bundle: Bundle = {
         if let url = Bundle.main.resourceURL?.appendingPathComponent("Loaf_Loaf.bundle"),
            let b = Bundle(url: url) { return b }

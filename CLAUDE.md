@@ -44,7 +44,7 @@ explaining *why* when the change isn't self-evident.
 
 ```
 blender/
-  catlib.py            geometry + material helpers (MIT fork of lil-cleo's bricklib)
+  catlib.py            geometry + material helpers shared by every build script
   build_cat.py         THE source of truth: model, rig, palette, camera, walk cycle
   build_cat_sit.py     sit, front — separate build, not a pose (see §4)
   build_cat_sit_side.py   sit, profile — the corner-rest pose, same angle she walks in
@@ -112,7 +112,7 @@ loaf-showcase.src.html the showcase page's SOURCE. Edit this, never the built
 web/                   Three.js live-rig previewer — same armature as the sprite
                        build, posed continuously in a browser instead of baked to
                        stills. `web/serve.sh` to run it. Dev tool, not shipped.
-ref/lil-cleo/          reference implementation, gitignored (see §5)
+ref/                   local reference material, gitignored (see §5)
 ```
 
 `.gitignore` explains each exclusion inline. The short version: `.blend` files and
@@ -315,8 +315,7 @@ scale 1.0, ~1.7% CPU, ~90MB RSS, **one permission requested** — Reminders, for
 task load.
 
 **`make app` / `make dist` build a real, installable `Loaf.app`** via
-`tools/package.sh` — adapted from `ref/lil-cleo`'s own template, not written from
-scratch. Icon comes from `front_idle.png` (front, not profile — an app icon is a
+`tools/package.sh`. Icon comes from `front_idle.png` (front, not profile — an app icon is a
 personality moment, per §2's angle rule) composited onto a soft cream-to-peach
 backdrop in her own palette, not a hand-picked new colourway. Ad-hoc signed: no
 Developer ID Application identity lives on this machine, only an unrelated Apple
@@ -414,24 +413,25 @@ state lights up the moment Blender renders its sprite, with no code change. Avai
 comes from `Sprites.exists`, which accepts a still **or** a cycle — checking only one
 marks either `sit` (a lone still) or `walk` (a cycle with no `walk.png`) as missing.
 
-`ref/lil-cleo/` is a shipped MIT desktop pet solving nearly the same problem and is
-the load-bearing reference. Re-clone with
-`git clone https://github.com/ankitaggarwal/lil-cleo ref/lil-cleo`.
+Four architectural rules hold the app together. Each was a deliberate choice, and
+each is the kind of thing that looks arbitrary until you break it:
 
-| File | How to use it |
-|---|---|
-| `ImageCharacterView.swift` | **Adapt closely** — sprite loading, `<state>1..N` cycling, `scaleEffect(x: facing)` mirroring, procedural motion layered on stills |
-| `SystemMonitor.swift` | **Adapt closely** — edge-triggered signals, not per-tick polling. Its RAM-pressure hold timer is a real bug fix worth inheriting |
-| `AppDelegate+Wander.swift` | **Adapt** — stroll → dwell → corner nap → wake-on-event, dock probing, sub-pixel accumulation |
-| `Emotion.swift` | **Structure only** — 857 lines of a LEGO minifig's feelings. Take the shape (renderer-agnostic enum, one sprite + one line per case), write Loaf's own states |
+- **Sprite loading and cycling belong in the view** — `<state>1..N` cycling,
+  `scaleEffect(x: facing)` for mirroring, procedural motion layered on stills
+  rather than baked into more frames.
+- **System signals are edge-triggered, never polled per tick.** `SystemMonitor`'s
+  RAM-pressure hold timer exists for exactly this reason.
+- **The wander loop is a state machine** — stroll → dwell → corner nap →
+  wake-on-event, with dock probing and sub-pixel accumulation.
+- **`LoafState` is renderer-agnostic**: one sprite and one line per case, so
+  behaviour code never names a file.
 
-Loaf's new axis is the one lil-cleo doesn't have: task load as body size.
+The axis this project is built around is task load as body size.
 
 **Sprites currently available:** `side_idle`, `front_idle`, `sit`, `walk1..8`.
-Two contract details when writing the loader: map `sleep` explicitly to `sit`
-(letting it hit the fallback chain gives a cat sleeping standing up), and drop
-`hero` from lil-cleo's fallback chain — that's their sprite name, it doesn't exist
-here.
+One contract detail when writing the loader: map `sleep` explicitly to `sit`,
+because letting it fall through the fallback chain gives a cat sleeping standing
+up.
 
 **The fatness trap.** Fatness is a *modifier*, not a state: 4 weights × 8 states +
 walk = **64 sprites**. Don't design it into the app until three test renders of
@@ -453,8 +453,8 @@ Supersedes `Idea.md` where they disagree.
 | Machine overloaded | stressed, hunched, ears flat | **live** — `SystemMonitor`, CPU/memory → `stressed` |
 | System wake | morning greeting | **live**, minus the greeting text — `NSWorkspace.didWakeNotification` triggers the "Paw" gesture (`PawDropView.swift`) instead. `LLMBrain.swift` exists now, but isn't wired into this path - wake fires once, on an unpredictable schedule, so there's no way to pre-fetch a line without a several-second gap between waking and her actually saying anything |
 
-Props should use lil-cleo's `SHOW_FOR` map (props toggled per state on one base
-pose) — already-solved architecture, don't invent a new mechanism.
+Props should use a `SHOW_FOR`-style map — props toggled per state on one base
+pose — rather than a new mechanism invented for the purpose.
 
 `stressed`'s pose is built (`build_cat_stressed.py`, flat ears via geometry, not
 rig bones — the earlier note that it was "blocked on ear bones" assumed posing

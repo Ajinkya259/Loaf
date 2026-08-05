@@ -1,8 +1,8 @@
 """Shared Blender geometry + material helpers for building blocky characters.
 
-Forked from lil-cleo's bricklib.py (MIT, Ankit Aggarwal) - same primitive
-builders, with Brick-specific body dimensions/palette stripped since Loaf
-defines her own. Every part is its own object with an identity transform and
+Primitive builders only - Loaf defines her own dimensions and palette, so
+nothing character-specific lives here. Every part is its own object with an
+identity transform and
 geometry baked in WORLD coords, so rigid bone-parenting only needs the bone's
 rest matrix inverse.
 """

@@ -2,7 +2,7 @@ import Foundation
 
 /// Watches the machine and tells the app when it's struggling.
 ///
-/// Adapted from lil-cleo's `SystemMonitor`, cut to the two signals that actually mean
+/// Cut to the two signals that actually mean
 /// "this computer is having a hard time": sustained CPU, and kernel memory pressure.
 /// Everything here is a system framework — no third-party dependency, no permission.
 ///

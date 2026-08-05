@@ -12,8 +12,7 @@
 # Apple Developer Program membership and a stored notarytool credential profile,
 # neither of which exists here yet. Override the identity with LOAF_SIGN_ID.
 #
-# Adapted from ref/lil-cleo/tools/package.sh, which already solved this for a
-# shipped desktop pet - same structure, Loaf's own icon and bundle ID.
+# The standard .app bundle layout, with Loaf's own icon and bundle ID.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

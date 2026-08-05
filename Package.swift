@@ -33,8 +33,8 @@ let package = Package(
                 // __TEXT,__info_plist section is what NSBundle.main reads even
                 // with no bundle around it, so the dev binary and the packaged
                 // .app (which gets its own separate Info.plist from
-                // tools/package.sh) both work. Same trick lil-cleo doesn't need,
-                // since it asks for no permissions at all.
+                // tools/package.sh) both work. Only needed because the app
+                // requests a permission at all.
                 .unsafeFlags([
                     "-Xlinker", "-sectcreate",
                     "-Xlinker", "__TEXT",

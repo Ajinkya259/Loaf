@@ -1,8 +1,8 @@
 import AppKit
 
 /// The dock stroll: Loaf ambles along the dock for a while, then finds a corner and
-/// sits down. Adapted from lil-cleo's `AppDelegate+Wander.swift`, cut down to what
-/// Phase 1 needs — no system reactions, no panic run, no speech.
+/// sits down. Cut down to what Phase 1 needs — no system reactions, no panic run,
+/// no speech.
 ///
 /// The one idea worth preserving from the original: **destination-based movement**.
 /// She picks a spot, eases toward it, lingers, then picks another. Constant-speed
@@ -104,8 +104,7 @@ extension AppDelegate {
             // Sit a while, then drift off, then eventually get up and stroll again.
             //
             // The sit→sleep delay is what makes the nap feel like something that
-            // happened to her rather than a state she was switched into. lil-cleo does
-            // the same thing for the same reason.
+            // happened to her rather than a state she was switched into.
             let rested = Date().timeIntervalSince(restStartedAt)
             if rested > 14, LoafState.sleep.available {
                 engine.setAuto(.sleep)
@@ -261,10 +260,10 @@ extension AppDelegate {
 
     /// The band she paces.
     ///
-    /// lil-cleo probes the Dock's real icon strip through the Accessibility API, which
-    /// needs the user to grant Accessibility permission. Loaf asks for **no permissions
-    /// at all**, so this uses their permission-free fallback: a centred band roughly
-    /// over a typical dock. Worth revisiting only if she visibly misses the dock.
+    /// Probing the Dock's real icon strip through the Accessibility API would need the
+    /// user to grant Accessibility permission. Loaf asks for **no permissions at all**,
+    /// so this uses a permission-free fallback: a centred band roughly over a typical
+    /// dock. Worth revisiting only if she visibly misses the dock.
     func walkBounds(screen: NSScreen, width: CGFloat) -> (CGFloat, CGFloat) {
         let vf = screen.visibleFrame
         let band = vf.width * 0.28                  // ~56% of the screen, centred

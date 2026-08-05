@@ -25,9 +25,8 @@ blender/previews/
 veo-output/grid.png
 veo-output/gait_row.png
 
-# The lil-cleo reference is someone else's repo, cloned locally with its own .git.
-# Committing it would embed a repo. Re-clone: git clone
-# https://github.com/ankitaggarwal/lil-cleo ref/lil-cleo
+# Local reference material - third-party repos cloned here for comparison, each
+# carrying its own .git. Committing one would embed a repository inside this one.
 ref/
 
 # ---------------------------------------------------------------------------

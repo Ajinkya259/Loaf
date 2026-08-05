@@ -11,8 +11,8 @@ laying out the same block vocabulary and the same palette, imported from build_c
 It still gets a rig, cut down to what a sitting cat actually does: turn its head, flick
 its tail, and breathe. No leg bones - a sitting cat's legs don't go anywhere.
 
-Front-facing ONLY, and that's a rule rather than a preference. lil-cleo's
-render_states.py splits its angles the same way: profile is for locomotion (side_idle,
+Front-facing ONLY, and that's a rule rather than a preference. The angles split
+along the same line throughout: profile is for locomotion (side_idle,
 walk, run) and everything expressive is rendered front-on. A sit isn't locomotion. It
 also doesn't survive profile - the bell taper that makes the pose read lives in X, the
 width axis, which is exactly what a side camera cannot see, so in profile she flattens

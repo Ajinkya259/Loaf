@@ -140,7 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var jumpFromX: CGFloat = 0
     var jumpDX: CGFloat = 0
 
-    /// Points per frame at 50Hz — about 55pt/s at scale 1. lil-cleo's number. Whether
+    /// Points per frame at 50Hz — about 55pt/s at scale 1. Whether
     /// it matches her stride (and so whether she moonwalks) is a thing to judge on
     /// screen, not to derive from an assumed stride length.
     var walkSpeed: CGFloat { 1.1 * CGFloat(settings.scale) }
@@ -164,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         scheduleNextPing()
         scheduleNextHydrationReminder()
 
-        // Test hook, mirroring lil-cleo's CLEO_ACTION: `LOAF_STATE=sit swift run Loaf`
+        // Test hook: `LOAF_STATE=sit swift run Loaf`
         // holds one state centred with no wandering. This is how each state gets
         // verified with a screenshot instead of nine menu clicks.
         if let raw = ProcessInfo.processInfo.environment["LOAF_STATE"],

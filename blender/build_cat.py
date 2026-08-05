@@ -25,8 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BLEND = os.path.join(HERE, "cat.blend")
 # Blender renders STRAIGHT INTO the Swift package. There is no copy step and there
 # should never be one: a sync step between the renderer and the app is a drift bug
-# waiting to happen, and this project has already lost time to two of them. Same
-# arrangement as lil-cleo's render_states.py.
+# waiting to happen, and this project has already lost time to two of them.
 #
 # A symlink here was tried first and does not work - SwiftPM's .copy duplicates the
 # link verbatim into the resource bundle, where its relative path no longer resolves,
@@ -39,8 +38,7 @@ BLEND = os.path.join(HERE, "cat.blend")
 #
 # A directory per weight collapses it. The naming contract inside each folder is
 # byte-identical, so a new state gets every weight for free and a new weight gets every
-# state for free. Nothing multiplies, and the app just picks a prefix. Same arrangement
-# lil-cleo uses for its characters.
+# state for free. Nothing multiplies, and the app just picks a prefix.
 WEIGHT = os.environ.get("LOAF_WEIGHT", "normal")
 SPRITES = os.path.join(HERE, "..", "Sources", "Loaf", "Resources", "sprites", WEIGHT)
 
@@ -495,7 +493,7 @@ def aim_camera(cam, loc, target):
 # expensive to change once the app ships, because the app anchors sprites bottom-centre
 # and any drift in scale or ground line makes her jump between states.
 #
-# The camera NEVER moves. Ported from lil-cleo's render_states.py: a fixed camera plus
+# The camera NEVER moves: a fixed camera plus
 # a character that rotates is the only way to guarantee identical scale and an
 # identical ground row across every state. Moving the camera per view - which is what
 # this file used to do - lets both drift silently.
@@ -521,8 +519,8 @@ SPRITE_UPP = SPRITE_ORTHO / SPRITE_W        # 0.00359 world units / px
 # push the front views off-centre instead.
 SPRITE_SIDE_DX = -62 * SPRITE_UPP
 
-# Landscape, not lil-cleo's portrait 512x640: Brick is a humanoid minifig and is taller
-# than he is wide in every pose, but a quadruped cat in profile is the opposite - 2.03
+# Landscape, not portrait: a humanoid character is taller than wide in every pose,
+# but a quadruped cat in profile is the opposite - 2.03
 # wide against 1.56 tall. Portrait cannot hold the standing profile without shrinking
 # her so far that the sitting states waste most of the frame.
 
@@ -600,8 +598,7 @@ def face(arm, side, dx=None):
 
     Loaf's front is -Y and camera-right is +X, so +90 degrees about Z puts her in
     profile facing screen-right. Only right-facing sprites are rendered - the app
-    mirrors them for leftward travel, exactly as lil-cleo's ImageCharacterView does
-    with scaleEffect(x: facing).
+    mirrors them for leftward travel with scaleEffect(x: facing).
 
     Side renders also get SPRITE_SIDE_DX applied in world X, which recentres the
     profile silhouette on the canvas. Front renders must NOT get it - there, world X
@@ -678,7 +675,7 @@ FRONT_DECALS = FACE_FRONT_DECALS
 CHEEK_DECALS = FACE_CHEEK_DECALS
 
 # ----------------------------------------------------------------------------
-WALK_FRAMES = 8                     # matches lil-cleo's WALK_FRAMES
+WALK_FRAMES = 8
 LEG_SWING   = math.radians(24)
 TAIL_SWAY   = math.radians(9)
 HEAD_DIP    = math.radians(3)

@@ -98,11 +98,6 @@ tools/build_showcase.py  builds loaf-showcase.html
   is unavailable to "Launch at login", which starts without a shell environment.
 - The packaged app is not notarized.
 
-## Credits
-
-[lil-cleo](https://github.com/ankitaggarwal/lil-cleo) (MIT), the reference for
-the desktop-pet architecture; `blender/catlib.py` is a fork of its `bricklib`.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).

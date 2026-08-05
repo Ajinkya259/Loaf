@@ -22,8 +22,8 @@ struct CatView: View {
     /// Hover or a plain click/tap - not a drag. See AppDelegate.greet().
     var onGreet: (() -> Void)?
 
-    /// 8 frames at 6.5fps is a 1.23s walk cycle. Inherited from lil-cleo, which tuned
-    /// it against a real mocap walk, so it's a better starting point than a guess.
+    /// 8 frames at 6.5fps is a 1.23s walk cycle, tuned against a real mocap walk
+    /// rather than guessed at.
     /// Per-state rates live on `LoafState.fps`; this one drives the procedural bob.
     private static let walkFPS = 6.5
 
@@ -92,10 +92,9 @@ struct CatView: View {
 
     /// The sprite for this state, with the contract's fallback chain.
     ///
-    /// `<state>` → `side_idle`. lil-cleo's chain has a third hop to `hero`, which is
-    /// one of *their* sprites — carrying it over would leave a dead branch. This is
-    /// also why `side_idle.png` must always exist: it is what every unrendered state
-    /// resolves to.
+    /// `<state>` → `side_idle`. Deliberately only two hops: a third would be a dead
+    /// branch. This is also why `side_idle.png` must always exist — it is what every
+    /// unrendered state resolves to.
     @ViewBuilder private func sprite(for state: LoafState, t: TimeInterval) -> some View {
         let name = frameName(state, t: t)
         if let img = Sprites.image(name) ?? Sprites.image("side_idle") {
