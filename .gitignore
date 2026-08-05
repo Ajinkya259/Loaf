@@ -79,6 +79,19 @@ loaf-showcase.html
 # useful locally and nobody else's business. CLAUDE.md §1 points at it.
 .git-identity.md
 
+# Credentials. Nothing here has ever been committed, and this is here to keep it
+# that way: the documented way to give her a key is LOAF_OPENROUTER_KEY, so the
+# obvious next step for anyone running her is a .env, which would otherwise be
+# committed on the very next `git add -A`.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.keystore
+secrets.*
+credentials.*
+
 __pycache__/
 *.pyc
 
