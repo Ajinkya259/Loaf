@@ -9,6 +9,9 @@ much work you have queued, and her posture reflects what your machine is doing.
 
 Every sprite is rendered by a headless Blender script. Nothing is hand-drawn.
 
+I wrote up how she was built, and the 706 renders it took to get there:
+[A loaf on my desktop](https://newsletter.ajinkya.site/build-04-loaf).
+
 ## Behaviour
 
 **Task load sets her body size.** Incomplete reminders in Reminders.app map to
