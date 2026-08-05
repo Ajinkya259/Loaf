@@ -5,7 +5,7 @@ with a personality. How much work is queued changes her body. What your machine
 is doing changes her mood.
 
 <p align="center">
-  <img src="docs/screenshot.png" width="480" alt="Loaf, idle, shown on both a light and a dark background">
+  <img src="docs/dock.png" width="880" alt="Loaf standing on the macOS dock, rendered at her real 160×128 on a real 1280×800 screen">
 </p>
 
 - **Task load → body size, live.** More incomplete reminders in Reminders.app →
@@ -186,13 +186,47 @@ Not done yet:
 ## Project layout
 
 ```
-blender/                Blender build scripts — the source of truth for her model
+blender/                 Blender build scripts — the source of truth for her model
 Sources/Loaf/            the Swift app
   Resources/sprites/<weight>/   sprites Blender renders directly into
 tools/package.sh         builds the real, installable .app + .dmg
+tools/build_showcase.py  embeds the current sprites into loaf-showcase.html
+loaf-showcase.src.html   source for the showcase page (edit this, not the built .html)
 web/                     a Three.js live-rig previewer, for iterating on motion
                          without a full Blender render (dev tool, not shipped)
 ref/lil-cleo/            reference desktop-pet implementation (gitignored, see CLAUDE.md §5)
 ```
 
 See `CLAUDE.md` §2 for the full annotated tree.
+
+## The showcase page
+
+`loaf-showcase.html` is a self-contained tour of every state — a 1:1 diorama of
+a 1280×800 Mac with a real dock and menu bar, her drawn at her real 160×128, and
+twelve clickable states from idle through sleep, stress and the jump arc. Open it
+in a browser; it needs no server and has no external requests.
+
+It is generated, not hand-maintained:
+
+```bash
+python3 tools/build_showcase.py     # re-embeds the current sprites
+```
+
+Edit `loaf-showcase.src.html` and re-run that. Never edit `loaf-showcase.html`
+directly — it is ~6 MB of embedded base64 and any hand edit is lost on the next
+build. Re-run it after `blender/build_all.sh` or the page silently keeps whatever
+sprites it was built with.
+
+## Credits
+
+- [`lil-cleo`](https://github.com/ankitaggarwal/lil-cleo) (MIT) — the load-bearing
+  reference for the desktop-pet architecture: sprite cycling, edge-triggered
+  system monitoring, and the dock-wander state machine. `blender/catlib.py` is a
+  fork of its `bricklib`.
+- [`three.js`](https://threejs.org) (MIT) — vendored in `web/vendor/` for the
+  live-rig previewer. Dev tool only; it ships with nothing.
+
+## License
+
+MIT — see [LICENSE](LICENSE). A personal project, public so anyone can build
+their own cat.

@@ -18,38 +18,15 @@ rebuild.
 
 ## 1. Git and GitHub — hard rules
 
-This machine has **four GitHub accounts** authenticated in `gh`, and the active
-one is usually **not** the right one for this project. Getting this wrong pushes
-commits under the wrong identity, which is annoying to unwind.
+**This machine has several GitHub accounts authenticated in `gh`, and the active
+one is usually not the right one for this repo.** The specifics — which account,
+which email, how to switch, and the attribution trap — live in **`.git-identity.md`
+in the repo root**, which is gitignored.
 
-**Before any push, fetch, or `gh` command in this repo, switch the account:**
+Read it before any push, fetch, or `gh` command here. It is untracked because it
+is account and email detail, and this repo is public.
 
-```bash
-gh auth switch --user Ajinkya259
-gh api user --jq .login          # must print: Ajinkya259
-```
-
-**The repo-local identity is already pinned** (`git config --local`, set at init).
-Verify it survived any clone or reconfiguration:
-
-```bash
-git config --get user.name      # Ajinkya259
-git config --get user.email     # ajinkyasambare25@gmail.com
-```
-
-Do **not** substitute `support@curious.pm` (a work account) or
-`ajinkyasambare259@gmail.com` (note the extra `9` — a different address, used by
-the sibling FlyThrough repo).
-
-For commits to attribute to the `Ajinkya259` profile on github.com, that gmail has
-to be a **verified email on that account**. If commits show up as an unlinked
-author, that's the reason — add it under Settings → Emails. The alternative that
-always attributes is the no-reply form,
-`163128787+Ajinkya259@users.noreply.github.com` (`163128787` is the account's user
-ID), which is what the `newsletter` repo uses because Vercel silently refuses to
-deploy commits it can't attribute.
-
-**Remote:** `https://github.com/Ajinkya259/Loaf` — **private**.
+**Remote:** `https://github.com/Ajinkya259/Loaf` — **public**.
 
 ### Commit messages
 
@@ -88,6 +65,9 @@ Info.plist              embedded into the dev binary via linker flags (§5) — 
                        only reason it exists is TaskLoadMonitor's Reminders prompt
 Makefile               make run / make cat / make app / make dist / make help
 tools/package.sh       builds the real, installable .app + .dmg (§5)
+tools/build_showcase.py  embeds the current sprites into loaf-showcase.html.
+                       Re-run after build_all.sh or the showcase silently keeps
+                       whatever sprites it was born with
 Sources/Loaf/
   main.swift           entry point; accessory app, no dock icon
   AppDelegate.swift    window, menu-bar item, geometry
@@ -119,6 +99,13 @@ Idea.md                original brain-dump. Superseded in places (see §6).
 veo-prompts.md         Google Veo prompt pack (promo footage only, not sprites)
 veo-output/ANALYSIS.md why Veo was disqualified as a sprite source
 *.html                 design studies — open in Safari, don't publish as Artifacts
+loaf-showcase.src.html the showcase page's SOURCE. Edit this, never the built
+                       .html — that one is 6MB of embedded base64 and any hand
+                       edit is lost on the next build. Same src/built split as
+                       coat-study. A 1:1 diorama of a 1280×800 Mac: real dock,
+                       real menu bar, her at her real 160×128, hands-free tour
+                       of every state. Built for a project showcase, so accuracy
+                       is the whole point of it
 web/                   Three.js live-rig previewer — same armature as the sprite
                        build, posed continuously in a browser instead of baked to
                        stills. `web/serve.sh` to run it. Dev tool, not shipped.

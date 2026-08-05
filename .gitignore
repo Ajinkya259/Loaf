@@ -30,6 +30,11 @@ veo-output/gait_row.png
 # https://github.com/ankitaggarwal/lil-cleo ref/lil-cleo
 ref/
 
+# Which GitHub account to push this repo with, and the emails not to use. Split
+# out of CLAUDE.md §1 when the repo went public - it is personal account detail,
+# useful locally and nobody else's business. CLAUDE.md §1 points at it.
+.git-identity.md
+
 __pycache__/
 *.pyc
 
