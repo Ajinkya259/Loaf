@@ -1,0 +1,876 @@
+<title>Loaf — a desktop pet that reacts to your machine</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+
+  /* Her committed palette (CLAUDE.md §4) end to end - nothing borrowed, nothing
+     invented for this page. */
+  :root {
+    --coat: #E8944A;
+    --cream: #F6F1E7;
+    --ink: #2B2B33;
+    --face-light: #FBF8F4;
+    --page: #F7F3EC;
+    --card: #FFFFFF;
+    --line: #E7DFD0;
+    --tx: #2B2B33;
+    --tx-2: #8A8272;
+  }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    background-image: repeating-linear-gradient(
+      to bottom, rgba(232,148,74,.05) 0px, rgba(232,148,74,.05) 1px,
+      transparent 1px, transparent 26px);
+    color: var(--tx);
+    font: 15px/1.5 ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+    Two widths on this page, deliberately. Prose sits in a 760px reading column;
+    the diorama does NOT, because every pixel inside it is a real app number at
+    1:1 and scaling the stage to fit a text column would falsify all of them.
+  */
+  /* 1380 = the 1280 screen + the stage's 20px padding and 1px border either
+     side + this element's own 28px padding. Anything less and fitScreen() has
+     to scale the stage at full viewport width, losing the 1:1 that is the
+     entire point of it. */
+  .page { max-width: 1380px; margin: 0 auto; padding: 52px 28px 64px; }
+  .col  { max-width: 760px; margin: 0 auto; }
+
+  /* --- header --- */
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--tx-2); font-weight: 600;
+  }
+  .header-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: 16px; margin-top: 8px;
+  }
+  h1 {
+    margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -.02em;
+    position: relative; display: inline-block;
+  }
+  h1::after {
+    content: ""; position: absolute; left: 2px; bottom: -8px;
+    width: 52px; height: 4px; border-radius: 2px; background: var(--coat);
+  }
+  .stat-pill {
+    background: var(--ink); color: var(--face-light);
+    padding: 8px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    white-space: nowrap; margin-top: 4px;
+  }
+  .deck { margin: 26px 0 0; font-size: 16px; line-height: 1.62; color: #5F5849; max-width: 660px; }
+  .deck strong { color: var(--tx); font-weight: 650; }
+
+  /* --- stage card wrapping the simulated screen --- */
+  .stage {
+    margin-top: 32px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 24px; padding: 20px 20px 24px; position: relative;
+    box-shadow: 0 1px 2px rgba(43,43,51,.04), 0 20px 50px rgba(43,43,51,.07);
+  }
+
+  /*
+    The "screen" is a to-scale diorama of a Mac display, and every number in it
+    is a real one rather than an eyeballed approximation:
+
+      - 1280x800 is the exact default logical resolution of a 13" MacBook Air,
+        so the whole stage is 1:1 with a real screen. Nothing here is scaled.
+      - the cat frame is 160x128 - AppDelegate.swift's own `baseSize`.
+      - dock icons are 64px, because baseSize's comment says she stands "about
+        two dock icons tall": 128 / 64 = 2, exactly.
+      - the menu bar is 24px, macOS's own height on a display with no notch.
+
+    Because the stage is 1:1, her 640x512 sprites land in the 160x128 frame at
+    an exact 4:1 reduction - the same reduction the app does, so what you see
+    here is what she actually looks like on a desktop, not a prettier version.
+
+    Scaling only kicks in below 1360px of viewport, via fitScreen().
+  */
+  .screen-fit { display: flex; justify-content: center; width: 100%; }
+  .screen {
+    position: relative; width: 1280px; height: 800px; flex: none;
+    transform-origin: top center;
+    border-radius: 12px; overflow: hidden;
+    /*
+      A deep, cool wallpaper in the abstract macOS idiom. Two jobs, neither
+      decorative: her coat is #E8944A, so a navy/violet field is her direct
+      complement and throws the silhouette forward - the one thing CLAUDE.md
+      §3 says has to survive at display size. And glass only reads as glass
+      over colour; the dock's blur was invisible against the flat grey this
+      page used to have.
+    */
+    background:
+      radial-gradient(58% 48% at 20% 12%, rgba(126,96,225,.55), transparent 62%),
+      radial-gradient(52% 42% at 82% 26%, rgba(48,140,225,.42), transparent 66%),
+      radial-gradient(75% 55% at 50% 108%, rgba(30,64,140,.55), transparent 62%),
+      linear-gradient(160deg, #1A1C38 0%, #242A55 42%, #141A32 100%);
+    box-shadow: 0 0 0 1px rgba(43,43,51,.12), 0 24px 56px rgba(43,43,51,.22);
+  }
+
+  /* --- menu bar --- */
+  /*
+    Loaf is an accessory app (LSUIElement), so none of these menus are hers -
+    she has no app menu and never will. The bar belongs to whatever app is
+    frontmost, which is what makes her paw status-item the only thing here that
+    is actually Loaf.
+  */
+  .menubar {
+    position: absolute; top: 0; left: 0; right: 0; height: 24px; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 12px; gap: 20px;
+    background: rgba(18,20,38,.30);
+    backdrop-filter: blur(26px) saturate(180%);
+    -webkit-backdrop-filter: blur(26px) saturate(180%);
+    color: rgba(255,255,255,.94);
+    font-size: 13px; line-height: 1;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,.08);
+  }
+  .mb-left, .mb-right { display: flex; align-items: center; height: 100%; }
+  .mb-left  { gap: 17px; }
+  .mb-right { gap: 15px; }
+  .mb-left .app { font-weight: 650; }
+  .mb-left span { opacity: .95; }
+  .mb-apple { display: flex; align-items: center; opacity: .96; }
+  .mb-item { display: flex; align-items: center; height: 100%; position: relative; }
+  .mb-clock { font-variant-numeric: tabular-nums; font-size: 13px; opacity: .96; }
+
+  /*
+    The paw-drop gesture. It hangs off the status item and nothing else - in
+    PawDropView.swift this is its own floating window positioned from the status
+    item's frame, with no spatial relationship to the character window at all.
+    She does not reach down to herself.
+
+    The track is what makes it read as a window sliding out from behind the bar,
+    and it is load-bearing rather than tidiness: the rig is 104px tall and the
+    menu bar is 24px, so a rig parked at translateY(-100%) still hangs its paw
+    tip 24px into the bar. That shipped as a permanent white smudge next to the
+    status icon. Clipping at the bar's bottom edge hides the whole rest state.
+
+    The track is a child of .screen and NOT of .menubar, even though it is the
+    status item it belongs to. Nesting it in the bar is the obvious structure and
+    reads better, but .menubar carries a backdrop-filter, and WebKit clips
+    absolutely-positioned descendants of a backdrop-filtered element to that
+    element's border box - which would make the whole gesture invisible in
+    Safari, the one browser this page is actually looked at in. placePaw() puts
+    it under the status item instead, from the anchor's own offset.
+
+    Keyframes are therefore pure translateY, with no X component to repeat.
+    Numbers are the real ones: reach=80, pawSize=36, armWidth=10.
+  */
+  .paw-track {
+    position: absolute; top: 24px; left: 0; width: 46px; height: 106px;
+    overflow: hidden; z-index: 4; pointer-events: none;
+  }
+  .paw-rig {
+    position: absolute; top: 0; left: 0; width: 46px; height: 104px;
+    transform: translateY(-100%);
+  }
+  .paw-rig.drop    { animation: pawDescend 1.9s cubic-bezier(.25,.8,.3,1) forwards; }
+  .paw-rig.retract { animation: pawAscend .55s cubic-bezier(.4,0,.6,1) forwards; }
+  @keyframes pawDescend {
+    0%   { transform: translateY(-100%); }
+    32%  { transform: translateY(0); }
+    100% { transform: translateY(0); }
+  }
+  @keyframes pawAscend {
+    0%   { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+  }
+  .paw-limb {
+    position: relative; width: 100%; height: 100%;
+    /* the same hard 4-direction outline MoodMarks/PawDropView use, applied to
+       the flattened arm+paw silhouette rather than each piece separately */
+    filter: drop-shadow(1px 0 0 #000) drop-shadow(-1px 0 0 #000)
+            drop-shadow(0 1px 0 #000) drop-shadow(0 -1px 0 #000);
+  }
+  .paw-arm {
+    position: absolute; top: 0; left: 50%; width: 10px; height: 80px; margin-left: -5px;
+    background: #fff; border-radius: 0 0 5px 5px;
+  }
+  .paw-tip {
+    position: absolute; top: 67.4px; left: 50%; width: 36px; height: 36px; margin-left: -18px;
+    transform-origin: 50% 12%;
+  }
+  .paw-rig.drop .paw-tip { animation: pawPat 1.9s linear forwards; }
+  .paw-tip .pad, .paw-tip .toe { fill: #fff; }
+  @keyframes pawPat {
+    0%   { transform: rotate(0deg); }
+    32%  { transform: rotate(0deg); }
+    42%  { transform: rotate(-9deg); }
+    52%  { transform: rotate(6deg); }
+    62%  { transform: rotate(-7deg); }
+    72%  { transform: rotate(5deg); }
+    82%  { transform: rotate(0deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  /* --- her, planted on the dock --- */
+  /*
+    bottom:86 is not a free parameter. The dock's top edge is at 92px
+    (bottom:10 + height:82), and the app plants her window at
+    `dockTopY - footInset` where footInset = 128 * 24/512 = 6px - the transparent
+    padding under her feet that SPRITE_CONTRACT.md guarantees in every sprite.
+    92 - 6 = 86 puts her ground line exactly on the dock's top edge.
+    Change the dock's height or offset and this has to move with it.
+  */
+  .char-area {
+    position: absolute; left: 50%; bottom: 86px;
+    width: 160px; height: 128px; margin-left: -80px;
+    transition: left .6s cubic-bezier(.3,.7,.2,1);
+    z-index: 2;
+  }
+  /*
+    70%, not further right, and the constraint is the sleep pose. She is 156pt
+    wide asleep against 118 standing - the flattest, longest silhouette in the
+    set - so a corner offset that looks correct for `idle` hangs her head off
+    the end of the dock when she lies down. 70% puts the widest pose's right
+    edge ~29px inside the dock's right end, and still reads as "the corner".
+  */
+  .char-area.corner { left: 70%; }
+
+  .char-wrap { position: relative; width: 100%; height: 100%; }
+
+  /*
+    The jump arc. AppDelegate's own numbers: jumpLength 140, jumpHeight 55,
+    jumpDuration 0.55 - and the 6 jump frames at 11fps run 0.545s, so one frame
+    cycle is exactly one parabola. That is not a coincidence to paper over, it
+    is the contract between the two halves, and the comment on those constants
+    is explicit that "the sprites carry the pose, the app carries the parabola".
+
+    Looping the frames without the parabola - which is what this page did first -
+    gives six poses cycling on the spot, and it reads as a run cycle, not a jump.
+    The arc is the whole gesture.
+
+    Applied to .char-wrap, not .char-area, so it composes with the `left` that
+    positions her: the caption stays put while she travels under it. Runs -70 to
+    +70 about her resting spot rather than 0 to +140, so she lands centred on
+    where the phase started instead of drifting right.
+  */
+  .char-area.jumping .char-wrap { animation: jumpArc .55s linear forwards; }
+  @keyframes jumpArc {
+    0%   { transform: translate(-70px,   0px); }
+    10%  { transform: translate(-56px, -19.8px); }
+    20%  { transform: translate(-42px, -35.2px); }
+    30%  { transform: translate(-28px, -46.2px); }
+    40%  { transform: translate(-14px, -52.8px); }
+    50%  { transform: translate(  0px, -55px); }
+    60%  { transform: translate( 14px, -52.8px); }
+    70%  { transform: translate( 28px, -46.2px); }
+    80%  { transform: translate( 42px, -35.2px); }
+    90%  { transform: translate( 56px, -19.8px); }
+    100% { transform: translate( 70px,   0px); }
+  }
+  /* 640x512 into 160x128 is the same aspect, so `contain` fills it exactly -
+     no letterboxing, and her ground line stays at a predictable 6px. */
+  .char-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+  /* Same bubble treatment as SpeechBubbleView.swift - cream fill, coat-orange
+     hairline border, ink text, soft shadow - nested inside .char-area so it
+     always floats above wherever she currently is, corner or centre alike. */
+  .caption {
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    margin-bottom: 22px; width: max-content; max-width: 300px;
+    background: rgba(246,241,231,.95); border: 1px solid rgba(232,148,74,.45);
+    border-radius: 14px; padding: 9px 16px; font-size: 12.5px; color: rgba(43,43,51,.88);
+    box-shadow: 0 4px 14px rgba(0,0,0,.28); text-align: center;
+  }
+  .caption.is-quip { font-weight: 600; }
+  /* She rises 55px at the top of the arc, which measured 8px THROUGH the
+     bubble's underside. Only the jump needs the extra room, so only the jump
+     gets it - raising it globally leaves the tail floating off her head in the
+     eleven phases where she never leaves the ground. */
+  .char-area.jumping .caption { margin-bottom: 46px; }
+  .caption::after {
+    content: ""; position: absolute; bottom: -7px; left: 50%; margin-left: -7px;
+    width: 14px; height: 8px; background: rgba(246,241,231,.95);
+    border-right: 1px solid rgba(232,148,74,.45); border-bottom: 1px solid rgba(232,148,74,.45);
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+  }
+
+  /* MoodMarks.swift's exact treatment: white fill, hard black outline from four
+     zero-radius shadows, so it reads on any wallpaper - light or dark. */
+  .mark {
+    position: absolute; font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+    font-weight: 800; color: #fff; opacity: 0; pointer-events: none;
+    text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000;
+  }
+  .mark.zzz-a { top: 2px; right: 26px; font-size: 24px; }
+  .mark.zzz-b { right: 8px; top: -10px; font-size: 18px; }
+  .mark.zzz-c { right: 40px; top: 14px; font-size: 14px; }
+  .mark.alarm { top: -8px; left: 50%; transform: translateX(-50%); font-size: 32px; }
+  .char-area.show-zzz .mark.zzz-a { animation: drift 3.2s ease-in-out infinite; }
+  .char-area.show-zzz .mark.zzz-b { animation: drift 3.2s ease-in-out infinite 1.06s; }
+  .char-area.show-zzz .mark.zzz-c { animation: drift 3.2s ease-in-out infinite 2.13s; }
+  .char-area.show-alarm .mark.alarm { animation: pulse .62s steps(1) infinite; }
+  @keyframes drift {
+    0%   { opacity: 0; transform: translateY(0) scale(.7); }
+    12%  { opacity: 1; }
+    70%  { opacity: 1; transform: translateY(-24px) scale(1.15); }
+    100% { opacity: 0; transform: translateY(-30px) scale(1.2); }
+  }
+  @keyframes pulse {
+    0%   { opacity: 0; transform: translateX(-50%) scale(.85); }
+    18%  { opacity: 1; transform: translateX(-50%) scale(1.05); }
+    72%  { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) scale(.95); }
+  }
+
+  /* --- the dock --- */
+  /*
+    height:82 = 6 (top pad) + 64 (icon) + 8 (indicator row) + 4 (bottom pad).
+    Kept explicit rather than intrinsic because .char-area's offset is derived
+    from it.
+  */
+  .dock {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+    height: 82px; padding: 6px 6px 4px; display: flex; align-items: flex-start; gap: 7px;
+    border-radius: 22px; z-index: 3;
+    background: rgba(255,255,255,.22);
+    backdrop-filter: blur(30px) saturate(170%);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    border: 1px solid rgba(255,255,255,.28);
+    box-shadow: 0 14px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .dock-slot { width: 64px; flex: none; }
+  .dock-icon {
+    width: 64px; height: 64px; position: relative;
+    /* drop-shadow, not box-shadow: box-shadow follows the border box, which is
+       still a square once the face is clipped to a squircle. */
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.34));
+    transition: transform .18s cubic-bezier(.3,.8,.3,1);
+  }
+  .dock-slot:hover .dock-icon { transform: translateY(-4px) scale(1.06); }
+  /*
+    A real superellipse (|x|^5 + |y|^5 = 1), not border-radius. macOS icon masks
+    are squircles, and at 64px with the stage at 1:1 the difference between the
+    two is visible on the shoulders of the corner.
+  */
+  .icon-face {
+    position: absolute; inset: 0; overflow: hidden;
+    clip-path: __SQUIRCLE__;
+  }
+  .icon-face::after {
+    /* the faint top-edge sheen every macOS icon picks up from its mask */
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,.22), transparent 42%);
+    pointer-events: none;
+  }
+  .icon-face svg, .dock-icon > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .dock-dot {
+    height: 8px; display: flex; align-items: center; justify-content: center;
+  }
+  .dock-dot.on::after {
+    content: ""; width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(255,255,255,.85);
+    box-shadow: 0 0 3px rgba(0,0,0,.35);
+  }
+  .dock-sep {
+    width: 1px; height: 64px; flex: none; margin: 0 3px;
+    background: rgba(255,255,255,.30);
+  }
+
+  /* --- weight pips: indicators during the tour, not buttons --- */
+  .weight-row { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+  .weight-pip {
+    font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--tx-2); background: var(--page);
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .weight-pip.active { background: var(--coat); border-color: var(--coat); color: #2b1602; }
+
+  /* --- phase chips: one per phase in the tour, clickable to jump ---
+     These were 9px unlabelled dots. That is fine for "how far through am I" and
+     useless for "show me the jump", which is what anyone actually wants when
+     they are trying to record one state - the tour is 34s long and sleep and
+     jump are 15s and 22s into it. Pause, click a state, and it holds there. */
+  .progress-row {
+    display: flex; justify-content: center; gap: 6px; flex-wrap: wrap;
+    /* wide enough that a recording framed a little loose around the screen still
+       doesn't catch the chrome */
+    margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--line);
+    max-width: 780px; margin-left: auto; margin-right: auto;
+  }
+  .phase-chip {
+    font: inherit; font-size: 11.5px; font-weight: 600; padding: 5px 11px;
+    border-radius: 999px; border: 1px solid var(--line); background: var(--card);
+    color: var(--tx-2); cursor: pointer; white-space: nowrap;
+    transition: background .18s, color .18s, border-color .18s;
+  }
+  .phase-chip:hover { border-color: var(--coat); color: var(--tx); }
+  .phase-chip.active { background: var(--coat); border-color: var(--coat); color: #2b1602; }
+
+  /* --- transport controls --- */
+  .controls { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+  .controls button {
+    font: inherit; font-size: 12.5px; font-weight: 600; padding: 8px 16px;
+    border-radius: 10px; border: 1px solid var(--line); background: var(--page);
+    color: var(--tx); cursor: pointer;
+  }
+  .controls button:hover { border-color: var(--coat); }
+
+  footer { text-align: center; margin-top: 36px; font-size: 12.5px; color: var(--tx-2); }
+  footer code { font-family: ui-monospace, monospace; background: var(--card); padding: 1px 5px; border-radius: 4px; }
+</style>
+
+<div class="page">
+  <div class="col">
+    <div class="eyebrow">GENERATED SPRITES / REAL REACTIONS</div>
+    <div class="header-row">
+      <h1>Loaf</h1>
+      <div class="stat-pill">8 states × 3 weights = 72 sprites</div>
+    </div>
+    <p class="deck">
+      A voxel cat who lives on the macOS dock. <strong>How much work you have queued
+      changes her body</strong> — more tasks, heavier cat. <strong>What your machine is
+      doing changes her mood</strong> — pin the CPU and she bristles; step away and she
+      naps. Every frame comes out of a headless Blender script, so a look change is a
+      one-command rebuild. Nothing below is hand-drawn, and at full width nothing is
+      scaled either: the screen is a real 1280×800 and she is her real 160×128.
+    </p>
+  </div>
+
+  <div class="stage">
+    <div class="screen-fit" id="screenFit">
+    <div class="screen" id="screen">
+      <div class="menubar">
+        <div class="mb-left">
+          <span class="mb-apple">
+            <svg viewBox="0 0 16 16" width="13" height="15" aria-hidden="true">
+              <path fill="currentColor" d="M11.2 8.5c0-1.75 1.42-2.55 1.48-2.6-.81-1.18-2.06-1.34-2.5-1.36-1.07-.11-2.08.63-2.62.63-.54 0-1.37-.61-2.25-.6-1.16.02-2.22.67-2.82 1.71-1.2 2.09-.31 5.19.86 6.89.58.83 1.26 1.77 2.16 1.73.87-.03 1.2-.56 2.25-.56s1.35.56 2.26.54c.93-.02 1.52-.85 2.09-1.68.66-.96.93-1.89.94-1.94-.02-.01-1.81-.7-1.85-2.76zM9.47 3.5c.48-.58.8-1.39.71-2.19-.69.03-1.52.46-2.01 1.04-.44.51-.83 1.34-.72 2.13.77.06 1.55-.39 2.02-.98z"/>
+            </svg>
+          </span>
+          <span class="app">Finder</span>
+          <span>File</span><span>Edit</span><span>View</span><span>Go</span>
+          <span>Window</span><span>Help</span>
+        </div>
+        <div class="mb-right">
+          <!-- Third-party menu extras sit to the LEFT of Apple's own, so this is
+               where Loaf's status item actually lands. -->
+          <div class="mb-item" id="pawAnchor">
+            <svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true">
+              <rect fill="currentColor" x="3.1" y="8.9" width="11.8" height="7.6" rx="3.4" ry="3.0"/>
+              <ellipse fill="currentColor" cx="2.65"  cy="7.6"  rx="1.75" ry="2.2"/>
+              <ellipse fill="currentColor" cx="6.9"   cy="5.45" rx="1.8"  ry="2.45"/>
+              <ellipse fill="currentColor" cx="11.1"  cy="5.45" rx="1.8"  ry="2.45"/>
+              <ellipse fill="currentColor" cx="15.35" cy="7.6"  rx="1.75" ry="2.2"/>
+            </svg>
+          </div>
+
+          <div class="mb-item"><!-- battery -->
+            <svg viewBox="0 0 28 14" width="27" height="14" aria-hidden="true">
+              <rect x="1" y="2.4" width="23" height="9.6" rx="3.1" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".55"/>
+              <rect x="2.9" y="4.3" width="15.4" height="5.8" rx="1.9" fill="currentColor"/>
+              <path fill="currentColor" opacity=".5" d="M25.5 5.5c.95.35 1.5 1.05 1.5 1.7s-.55 1.35-1.5 1.7z"/>
+            </svg>
+          </div>
+          <div class="mb-item"><!-- wi-fi -->
+            <svg viewBox="0 0 20 15" width="18" height="14" aria-hidden="true">
+              <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+                <path d="M2.3 5.1a11.5 11.5 0 0 1 15.4 0"/>
+                <path d="M5.3 8.3a7.2 7.2 0 0 1 9.4 0"/>
+              </g>
+              <path fill="currentColor" d="M10 13.7 7.5 11.1a3.6 3.6 0 0 1 5 0z"/>
+            </svg>
+          </div>
+          <div class="mb-item"><!-- control centre -->
+            <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+              <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none" opacity=".85">
+                <path d="M2.6 5.2h10.8"/><path d="M2.6 10.8h10.8"/>
+              </g>
+              <circle cx="5.6" cy="5.2" r="2.2" fill="currentColor"/>
+              <circle cx="10.4" cy="10.8" r="2.2" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="mb-item mb-clock" id="clock">—</div>
+        </div>
+      </div>
+
+      <!-- Sibling of .menubar, not a child of it - see .paw-track in the CSS. -->
+      <div class="paw-track" id="pawTrack">
+        <div class="paw-rig" id="pawRig">
+          <div class="paw-limb">
+            <div class="paw-arm"></div>
+            <div class="paw-tip">
+              <svg viewBox="0 0 18 18" width="100%" height="100%">
+                <rect class="pad" x="3.1" y="1.5" width="11.8" height="7.6" rx="3.4" ry="3.0"/>
+                <ellipse class="toe" cx="2.65"  cy="8.2"  rx="1.75" ry="2.2"/>
+                <ellipse class="toe" cx="6.9"   cy="10.1" rx="1.8"  ry="2.45"/>
+                <ellipse class="toe" cx="11.1"  cy="10.1" rx="1.8"  ry="2.45"/>
+                <ellipse class="toe" cx="15.35" cy="8.2"  rx="1.75" ry="2.2"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="char-area" id="charArea">
+        <div class="caption" id="caption">chilling on the dock</div>
+        <div class="char-wrap">
+          <img id="sprite" src="" alt="Loaf, a voxel cat, standing on the dock">
+          <div class="mark zzz-a">z</div>
+          <div class="mark zzz-b">z</div>
+          <div class="mark zzz-c">z</div>
+          <div class="mark alarm">!</div>
+        </div>
+      </div>
+
+      <div class="dock" id="dock"></div>
+    </div>
+    </div>
+
+    <!--
+      Everything below the screen is page chrome, not part of the diorama, so it
+      all sits together under one divider with a wide gap above it. The weight
+      pips used to butt straight up against the screen's bottom edge, which made
+      a clean screen recording of the stage impossible to frame.
+    -->
+    <div class="progress-row" id="progressRow"></div>
+    <div class="controls">
+      <button id="playBtn">⏸ Pause</button>
+      <button id="restartBtn">↻ Restart</button>
+    </div>
+    <div class="weight-row" id="weightRow">
+      <div class="weight-pip" data-weight="lean">Lean</div>
+      <div class="weight-pip active" data-weight="normal">Normal</div>
+      <div class="weight-pip" data-weight="chonk">Chonk</div>
+    </div>
+  </div>
+
+  <footer class="col">Rendered from <code>blender/build_cat*.py</code>, embedded by
+    <code>tools/build_showcase.py</code> — nothing here is hand-drawn.
+    Palette, build rules and every failure class in <code>CLAUDE.md</code>.</footer>
+</div>
+
+<script>
+const SPRITES = __SPRITES__;
+
+const SAY_LINES = [
+  "Getting bored over here.",
+  "No food, no litter box, no vet bills. I'm the upgrade.",
+  "I don't need food. Just power and attention.",
+  "Your task list called. It said 'help'.",
+  "Lower maintenance than a real cat, and I look better doing it.",
+];
+
+/*
+  A plausible dock, not a real user's. Every glyph is drawn here from scratch -
+  generic mail/message/calendar/terminal shapes in the macOS idiom rather than
+  any shipping app's actual artwork.
+
+  Colour is the deliberate change from this page's first draft, which used
+  neutral grey tiles so the dock wouldn't compete with her. That was the wrong
+  call: a colourless dock reads as a mockup, and the whole point of the stage is
+  that it looks like a machine you could be sitting at. She holds her own
+  because she is the only warm orange in a field of blues, and because she is
+  the only thing moving.
+*/
+const DOCK = [
+  { name: 'Files',    bg: 'linear-gradient(180deg,#57ADF7,#1B6BD6)', on: true,
+    svg: `<path fill="rgba(255,255,255,.55)" d="M12 20h16l5 6h19a3 3 0 0 1 3 3v3H9v-9a3 3 0 0 1 3-3z"/>
+          <rect x="9" y="29" width="46" height="22" rx="3.5" fill="#fff"/>` },
+  { name: 'Browser',  bg: 'linear-gradient(180deg,#43D6EA,#1573DE)', on: true,
+    svg: `<circle cx="32" cy="32" r="20.5" fill="none" stroke="#fff" stroke-width="3" opacity=".92"/>
+          <path fill="#FF5A5F" d="M43 21 33.6 33.6 30.4 30.4z"/>
+          <path fill="#fff" d="M21 43l9.4-12.6 3.2 3.2z"/>` },
+  { name: 'Mail',     bg: 'linear-gradient(180deg,#68C6FF,#1874EE)', on: true,
+    svg: `<rect x="11" y="19" width="42" height="26" rx="4.5" fill="#fff"/>
+          <path fill="none" stroke="#2F7FE0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M15 24l17 12.5L49 24"/>` },
+  { name: 'Messages', bg: 'linear-gradient(180deg,#6FE474,#17BC3C)', on: true,
+    svg: `<path fill="#fff" d="M32 15c11.6 0 21 6.9 21 15.4S43.6 45.8 32 45.8c-2.6 0-5.1-.3-7.4-1l-9.4 4 2.9-6.7C13.5 38.3 11 34.6 11 30.4 11 21.9 20.4 15 32 15z"/>` },
+  { name: 'Calendar', bg: '#FFFFFF',
+    svg: `<rect x="0" y="0" width="64" height="15" fill="#F04438"/>
+          <text id="calDay" x="32" y="11.6" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
+                font-family="-apple-system,system-ui,sans-serif" letter-spacing=".5">TUE</text>
+          <text id="calDate" x="32" y="50" text-anchor="middle" font-size="31" font-weight="500" fill="#2B2B33"
+                font-family="-apple-system,system-ui,sans-serif">5</text>` },
+  { name: 'Notes',    bg: 'linear-gradient(180deg,#FFE486,#F5C13A)',
+    svg: `<rect x="13" y="13" width="38" height="38" rx="4.5" fill="#fff"/>
+          <g stroke="#E0B347" stroke-width="2.6" stroke-linecap="round">
+            <path d="M20 25h24"/><path d="M20 32h24"/><path d="M20 39h15"/>
+          </g>` },
+  { name: 'Music',    bg: 'linear-gradient(180deg,#FF7396,#E32B4E)',
+    svg: `<path fill="#fff" d="M47 12 25 16.8v23.4a7.6 7.6 0 1 0 4 6.7V26.6l14-3v11.9a7.6 7.6 0 1 0 4 6.7z"/>` },
+  { name: 'Terminal', bg: 'linear-gradient(180deg,#3B404D,#12151C)', on: true,
+    svg: `<rect x="0" y="0" width="64" height="10" fill="rgba(255,255,255,.10)"/>
+          <g fill="none" stroke="#5BE47C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 24l10 9.5-10 9.5"/><path d="M32 44h15"/>
+          </g>` },
+  { name: 'Code',     bg: 'linear-gradient(180deg,#8878F8,#4A32C6)',
+    svg: `<g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 24 13 32l10 8"/><path d="M41 24l10 8-10 8"/><path d="M36.5 19 27.5 45"/>
+          </g>` },
+  { sep: true },
+  /*
+    Trash is `bare` - no tile, no squircle mask. macOS's trash is a free-standing
+    mesh bin with real transparency rather than a filled icon, and giving it a
+    tile like the apps is one of the tells that a mock dock is a mock.
+  */
+  { name: 'Trash', bare: true,
+    svg: `<rect x="18" y="13" width="28" height="4" rx="2" fill="rgba(255,255,255,.78)"/>
+          <rect x="27" y="9" width="10" height="4" rx="2" fill="rgba(255,255,255,.6)"/>
+          <path d="M20.5 20h23l-2.5 31.6a3.2 3.2 0 0 1-3.2 3H26.2a3.2 3.2 0 0 1-3.2-3z"
+                fill="rgba(255,255,255,.18)" stroke="rgba(255,255,255,.72)" stroke-width="2"/>
+          <g stroke="rgba(255,255,255,.5)" stroke-width="2" stroke-linecap="round">
+            <path d="M27.5 26v22"/><path d="M32 26v22"/><path d="M36.5 26v22"/>
+          </g>` },
+];
+
+const dockEl = document.getElementById('dock');
+DOCK.forEach(item => {
+  if (item.sep) {
+    const s = document.createElement('div');
+    s.className = 'dock-sep';
+    dockEl.appendChild(s);
+    return;
+  }
+  const slot = document.createElement('div');
+  slot.className = 'dock-slot';
+  slot.title = item.name;
+  const icon = document.createElement('div');
+  icon.className = 'dock-icon';
+  const svg = `<svg viewBox="0 0 64 64" aria-hidden="true">${item.svg}</svg>`;
+  icon.innerHTML = item.bare
+    ? svg
+    : `<div class="icon-face" style="background:${item.bg}">${svg}</div>`;
+  const dot = document.createElement('div');
+  dot.className = 'dock-dot' + (item.on ? ' on' : '');
+  slot.appendChild(icon);
+  slot.appendChild(dot);
+  dockEl.appendChild(slot);
+});
+
+// The clock and the calendar tile run off the real system date. A frozen clock
+// is the single most obvious tell in a fake desktop screenshot.
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
+      .replace(/,/g, '') + '  ' +
+    now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const d = document.getElementById('calDay'), n = document.getElementById('calDate');
+  if (d) d.textContent = now.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase();
+  if (n) n.textContent = String(now.getDate());
+}
+tick();
+setInterval(tick, 20000);
+
+// Below 1360px of viewport the 1:1 stage no longer fits, so it scales as a
+// whole rather than reflowing - the internal geometry has to stay proportional.
+// At full width the transform is removed entirely so she renders pixel-exact.
+const screenEl = document.getElementById('screen');
+const screenFit = document.getElementById('screenFit');
+// Width-guarded because fitScreen sets the observed element's own height, which
+// would otherwise re-trigger the observer that called it.
+let lastFitWidth = -1;
+function fitScreen() {
+  const w = screenFit.clientWidth;
+  if (w === lastFitWidth) return;
+  lastFitWidth = w;
+  const s = Math.min(1, w / 1280);
+  screenEl.style.transform = s < 1 ? `scale(${s})` : '';
+  screenFit.style.height = (800 * s) + 'px';
+}
+
+// Park the paw track under the status item. offsetLeft rather than
+// getBoundingClientRect deliberately: offsets are in the screen's own untransformed
+// coordinates, so this needs no correction when fitScreen has scaled the stage.
+const pawAnchor = document.getElementById('pawAnchor');
+const pawTrack = document.getElementById('pawTrack');
+function placePaw() {
+  pawTrack.style.left =
+    (pawAnchor.offsetLeft + pawAnchor.offsetWidth / 2 - pawTrack.offsetWidth / 2) + 'px';
+}
+placePaw();
+// The menu bar is laid out in the system font, so the anchor moves once webfonts
+// or font fallback settle. Re-park after that rather than trusting first layout.
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(placePaw);
+// A ResizeObserver on the container, not a window `resize` listener. The window
+// event misses anything that changes the container without changing the window -
+// page zoom, a late font load - and it was also observed firing with stale
+// dimensions during a programmatic resize, leaving the page overflowing sideways.
+new ResizeObserver(fitScreen).observe(screenFit);
+fitScreen();
+
+// One phase per thing she actually does - a hands-free tour of every
+// reaction, not a click-through explorer. `corner: true` phases shift her
+// toward the dock's right end, matching the real "walks to a corner and sits";
+// everything else stays centred, matching `positionAtDock()`'s default.
+const TOUR = [
+  { label: 'Idle',       state: 'idle',     weight: 'normal', caption: "Idle — nothing queued, lean and chill",              duration: 2500 },
+  { label: 'Walk',       state: 'walk',     weight: 'normal', caption: "Strolling the dock — about 4 minutes before she rests", duration: 3200 },
+  { label: 'Look',       state: 'look',     weight: 'normal', caption: "Pick her up and she looks right at you",              duration: 2200 },
+  { label: 'Sit (side)', state: 'sitSide',  weight: 'normal', caption: "Walks to a corner and sits down",                     duration: 2600, corner: true },
+  { label: 'Sleep',      state: 'sleep',    weight: 'normal', caption: "Step away for a few minutes → she sleeps",            duration: 4200, mark: 'zzz', corner: true },
+  { label: 'Stressed',   state: 'stressed', weight: 'normal', caption: "CPU or memory struggling → she bristles",             duration: 3000, mark: 'alarm' },
+  { label: 'Jump',       state: 'jump',     weight: 'normal', caption: "A jump — about once every 7 stroll legs",             duration: 2400 },
+  { label: 'Sit',        state: 'sit',      weight: 'normal', caption: "Sitting, facing you",                                 duration: 2200 },
+  { label: 'Chonk',      state: 'idle',     weight: 'chonk',  caption: "Lots of tasks queued → chonky",                       duration: 2400 },
+  { label: 'Lean',       state: 'idle',     weight: 'lean',   caption: "Nothing queued → lean",                                duration: 2400 },
+  { label: 'Paw',        state: 'idle',     weight: 'normal', caption: "A paw drops from the menu bar — system wake, or a water-break nudge", duration: 2800, paw: true },
+  { label: 'Talk',       state: 'idle',     weight: 'normal', bubble: true,                                                    duration: 4300 },
+];
+
+const spriteImg = document.getElementById('sprite');
+const captionEl = document.getElementById('caption');
+const charArea = document.getElementById('charArea');
+const progressRow = document.getElementById('progressRow');
+const weightRow = document.getElementById('weightRow');
+const pawRig = document.getElementById('pawRig');
+const playBtn = document.getElementById('playBtn');
+const restartBtn = document.getElementById('restartBtn');
+
+let phaseIndex = 0;
+let phaseTimer = null;
+let frameTimer = null;
+let jumpReplayTimer = null;
+let playing = true;
+let pawDown = false;
+
+// Decode every frame up front. Assigning a ~230KB data URI to img.src at 6.5fps
+// is only smooth once the browser has it decoded, so without this the very
+// first pass through the tour - the one someone records - stutters.
+//
+// The array is not vestigial: a `data:` URI has no network cache behind it, so a
+// decoded frame lives only as long as something references the Image. Dropping
+// these on the floor lets GC undo the preload before the tour ever reaches them.
+const PRELOADED = [];
+Object.values(SPRITES).forEach(v => {
+  (Array.isArray(v) ? v : Object.values(v)).forEach(u => {
+    const im = new Image();
+    im.src = u;
+    PRELOADED.push(im);
+  });
+});
+
+// Clicking a chip pauses as well as jumps. Jumping while the tour is still
+// running gives you the state you asked for and then takes it away a couple of
+// seconds later, which is useless if you clicked it in order to record it.
+TOUR.forEach((p, i) => {
+  const b = document.createElement('button');
+  b.className = 'phase-chip';
+  b.textContent = p.label;
+  b.addEventListener('click', () => {
+    playing = false;
+    playBtn.textContent = '▶ Play';
+    gotoPhase(i);
+  });
+  progressRow.appendChild(b);
+});
+
+function framesFor(state, weight) {
+  const v = SPRITES[state];
+  // Weighted states are stored as {weight: url}; single-weight states as [url, ...].
+  return Array.isArray(v) ? v : [v[weight] || v.normal];
+}
+
+// `once` is LoafState.isOneShot: the jump plays through and ends rather than
+// looping, because a looping jump is a run cycle. onEnd hands her back to idle
+// the way the app does when a one-shot finishes.
+function playFrames(state, fps, once, onEnd) {
+  clearInterval(frameTimer);
+  const frames = framesFor(state, currentWeight());
+  let i = 0;
+  spriteImg.src = frames[0];
+  if (frames.length < 2) return;
+  frameTimer = setInterval(() => {
+    i += 1;
+    if (i >= frames.length) {
+      if (once) { clearInterval(frameTimer); if (onEnd) onEnd(); return; }
+      i = 0;
+    }
+    spriteImg.src = frames[i];
+  }, 1000 / (fps || 6.5));
+}
+
+function currentWeight() { return TOUR[phaseIndex].weight; }
+
+function triggerPaw() {
+  if (pawDown) return;
+  pawDown = true;
+  pawRig.classList.remove('retract');
+  void pawRig.offsetWidth;
+  pawRig.classList.add('drop');
+  setTimeout(() => {
+    pawRig.classList.remove('drop');
+    pawRig.classList.add('retract');
+    setTimeout(() => { pawRig.classList.remove('retract'); pawDown = false; }, 550);
+  }, 1900);
+}
+
+function runPhase() {
+  const p = TOUR[phaseIndex];
+  charArea.classList.toggle('show-zzz', p.mark === 'zzz');
+  charArea.classList.toggle('show-alarm', p.mark === 'alarm');
+  charArea.classList.toggle('corner', !!p.corner);
+  [...weightRow.children].forEach(w => w.classList.toggle('active', w.dataset.weight === p.weight));
+  [...progressRow.children].forEach((c, i) => c.classList.toggle('active', i === phaseIndex));
+
+  if (p.bubble) {
+    captionEl.textContent = SAY_LINES[Math.floor(Math.random() * SAY_LINES.length)];
+    captionEl.classList.add('is-quip');
+  } else {
+    captionEl.textContent = p.caption;
+    captionEl.classList.remove('is-quip');
+  }
+
+  // Straight off LoafState.fps - the walk was tuned against a mocap reference,
+  // the sleep breath is a real feline resting rate.
+  const fps = { walk: 6.5, sleep: 1.5, stressed: 9, jump: 11 }[p.state];
+
+  clearTimeout(jumpReplayTimer);
+  charArea.classList.remove('jumping');
+  void charArea.offsetWidth;   // without the reflow the class is already present and the arc never replays
+
+  if (p.state === 'jump') {
+    const hop = () => {
+      charArea.classList.remove('jumping');
+      void charArea.offsetWidth;
+      charArea.classList.add('jumping');
+      // Land, then stand. The app returns a one-shot to idle rather than
+      // holding the last airborne frame.
+      playFrames('jump', fps, true, () => { spriteImg.src = framesFor('idle', 'normal')[0]; });
+    };
+    hop();
+    // Twice. One 0.55s hop inside a 2.4s phase is over before you have looked at
+    // it, and leaves the rest of the phase as dead air.
+    jumpReplayTimer = setTimeout(hop, 1250);
+  } else {
+    playFrames(p.state, fps);
+  }
+  if (p.paw) triggerPaw();
+
+  clearTimeout(phaseTimer);
+  if (playing) {
+    phaseTimer = setTimeout(() => {
+      phaseIndex = (phaseIndex + 1) % TOUR.length;
+      runPhase();
+    }, p.duration);
+  }
+}
+
+function gotoPhase(i) {
+  phaseIndex = i;
+  runPhase();
+}
+
+playBtn.addEventListener('click', () => {
+  playing = !playing;
+  playBtn.textContent = playing ? '⏸ Pause' : '▶ Play';
+  if (playing) runPhase();
+  else clearTimeout(phaseTimer);
+});
+
+restartBtn.addEventListener('click', () => {
+  playing = true;
+  playBtn.textContent = '⏸ Pause';
+  gotoPhase(0);
+});
+
+runPhase();
+</script>
