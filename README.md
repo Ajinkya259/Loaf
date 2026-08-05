@@ -1,230 +1,111 @@
 # Loaf
 
-A voxel cat who lives on your macOS dock as a desktop pet — a status indicator
-with a personality. How much work is queued changes her body. What your machine
-is doing changes her mood.
+A voxel cat who lives on your macOS dock. **How much work you have queued changes
+her body; what your machine is doing changes her mood.**
 
 <p align="center">
-  <img src="docs/dock.png" width="880" alt="Loaf standing on the macOS dock, rendered at her real 160×128 on a real 1280×800 screen">
+  <img src="docs/tour.gif" width="880" alt="Loaf walking along the macOS dock, sleeping in the corner, and bristling when the CPU spikes">
 </p>
 
-- **Task load → body size, live.** More incomplete reminders in Reminders.app →
-  she gets fatter. Nothing pending → lean and chill.
-- **System load → posture.** CPU or memory struggling → she stops, hunches,
-  bristles. Recovers → back to normal.
-- **You step away → she sleeps early.** No keyboard or mouse input for a few
-  minutes and she settles down, rather than pacing the dock all night.
-- **Your Mac wakes up → she waves.** A paw drops down from the menu bar as a
-  "good morning."
-- **Every 1-2 hours, a water-break nudge** — the same paw drop, paired with a
-  reminder to go drink some water.
-- **LLM-generated one-liners while she's idle** — sarcastic, a little bored,
-  aware of her actual weight and whether the machine's struggling. Falls back
-  to a curated fixed pool with no API key set, or on any network hiccup — no
-  visible difference in behaviour either way.
-- **Hover or click her directly and she greets you** — an immediate "Hey." and
-  a glance in your direction, rather than waiting for the next idle check.
-- Draggable. Pick her up and she wakes and looks at you; let go and she falls
-  back to the dock instead of teleporting.
-- **"Launch at login"** in the menu (once installed as a real `.app`), so a
-  reboot doesn't silently end her until you remember to relaunch.
-
 She's **generated, not drawn** — every sprite comes out of a headless Blender
-script (`blender/build_cat*.py`). Nothing here is hand-painted, so changing her
-look is one command, not a re-draw.
+script, so changing her look is one command, not a re-draw.
 
-## Quick start
+## The two signals
 
-**Run from source** (for development — rebuilds on every launch):
+**Task load → her body.** Incomplete reminders in Reminders.app make her fatter.
+Nothing pending and she's lean.
+
+<p align="center">
+  <img src="docs/weights.png" width="560" alt="Loaf at three body weights: lean, normal and chonk">
+</p>
+
+**Machine load → her posture.** CPU or memory under pressure and she stops,
+hunches and bristles. Step away from the keyboard and she curls up and sleeps.
+The two are independent, so she can be fat *and* frightened — which is the
+"too much to do and the laptop is dying" case.
+
+<p align="center">
+  <img src="docs/states.png" width="880" alt="Loaf's eight poses: idle, walk, sit, sleep, stressed and look">
+</p>
+
+Plus: a paw drops from the menu bar when your Mac wakes and every 1–2 hours as a
+water-break nudge; she's draggable; and she mutters LLM-generated one-liners
+while idle, falling back to a fixed pool with no API key or on any network
+hiccup.
+
+## Install
 
 ```bash
 git clone https://github.com/Ajinkya259/Loaf
 cd Loaf
-make run
+make run          # build and launch from source
+make dist         # or: a real dist/Loaf.app + dist/Loaf.dmg
 ```
 
-**Install properly** — a real `Loaf.app` you drag to `/Applications`:
+**macOS 14+ and Swift 6 command-line tools. Nothing else** — no third-party
+packages, no CocoaPods, no npm, just AppKit, SwiftUI and a folder of PNGs. She
+runs all day, so every dependency would be memory held the whole time and
+supply-chain surface for something that needs none.
 
-```bash
-make app       # dist/Loaf.app only
-make dist      # dist/Loaf.app + dist/Loaf.dmg
-```
-
-Ad-hoc signed (no Apple Developer ID on this machine yet), so on first launch
-macOS will refuse to open it normally — right-click → Open once, or
+The packaged `.app` is ad-hoc signed (no Apple Developer ID here), so macOS
+blocks the first launch — right-click → Open once, or
 `xattr -dr com.apple.quarantine dist/Loaf.app`.
 
-Either way, she appears on the dock and everything is controlled from the 🐾
-menu-bar item: **Autopilot** (the default — she does everything on her own),
-**Weight** (task load, still hand-set — see [Status](#status)), **Actions**
-(pin a specific pose or gesture by hand), **Settings** (display, size,
-reaction toggles).
+Everything is controlled from the 🐾 menu-bar item: **Autopilot** (the default),
+**Weight**, **Actions**, **Settings**.
 
-```bash
-make run                        # build + launch from source
-make stop                       # quit her
-LOAF_STATE=sit make run         # pin one state for inspection instead of wandering
-```
-
-**Requirements:** macOS 14+, Xcode / Swift 6 command-line tools. Nothing else —
-see [Zero dependencies](#zero-dependencies) below. Blender is only needed if
-you're regenerating the art (see [Regenerating the art](#regenerating-the-art)).
+**One permission requested** — Reminders, for task load. No Accessibility, no
+Calendar. Deny it and she keeps whatever weight the menu last set. Footprint is
+~2% CPU and ~13 MB standing still, ~8% and ~30 MB while she's walking.
 
 ## How it works
 
-Two independent pieces:
+Two independent halves.
 
-1. **The art pipeline** (`blender/`) — headless Blender scripts build a voxel
-   cat, rig it, and render every pose × body-weight combination straight into
-   `Sources/Loaf/Resources/sprites/<weight>/`. There's no hand-drawing and no
-   copy step between renderer and app.
-2. **The app** (`Sources/Loaf/`) — a SwiftPM executable: an AppKit borderless
-   window plus a SwiftUI character view, running as a menu-bar accessory app
-   (no dock icon of its own — she *is* the icon). A small state machine
-   (`AppDelegate+Wander.swift`) makes her stroll the dock (~4 minutes) before
-   pausing, walking to a corner, sitting, and eventually sleeping. Three
-   edge-triggered monitors watch the outside world: `SystemMonitor.swift`
-   (CPU + memory pressure → stressed), `UserIdleMonitor.swift` (no
-   keyboard/mouse input → sleeps early) — both permission-free — and
-   `TaskLoadMonitor.swift` (incomplete Reminders → her weight, the one
-   permission the app asks for). `PawDropView.swift` and
-   `SpeechBubbleView.swift` are separate overlays layered above whatever pose
-   she's in, not poses themselves — a "Paw" greeting on system wake and every
-   1-2h as a water-break nudge, and speech bubbles either idle-triggered or
-   immediate on hover/click. `LLMBrain.swift` (OpenRouter) generates the
-   idle-triggered lines when an API key is set, falling back to
-   `SpeechBubbleView`'s fixed pool otherwise.
+**The art pipeline** (`blender/`) renders every pose at every body weight
+straight into `Sources/Loaf/Resources/sprites/<weight>/` — no hand-drawing, and
+no copy step between renderer and app. 8 states across 3 body weights: 72 sprite
+files, because the cycles count too (walk is 8 frames, jump 6, sleep 4).
 
-8 states currently have art — idle, walk, look, sit (front), sit (profile),
-sleep, stressed, jump — each rendered at 3 body weights, 72 sprites total.
+**The app** (`Sources/Loaf/`) is a SwiftPM executable: a borderless AppKit window
+with a SwiftUI character view, running as a menu-bar accessory with no dock icon
+of its own — she *is* the icon. A state machine strolls her along the dock for
+~4 minutes before she rests, walks to a corner, sits, and eventually sleeps.
+Three edge-triggered monitors watch the outside world: CPU and memory pressure,
+keyboard/mouse idle, and incomplete Reminders.
 
-For the full design reasoning (why the camera never moves, why weight is a
-directory and not a filename, why sleep gets a drifting "z" instead of a
-different pose, and every failure mode that got us here), see:
+```bash
+blender/build_all.sh   # regenerate every sprite (needs Blender 5.2)
+```
 
-| File | What's in it |
+Always run that script rather than one build script alone — the poses have
+drifted apart from each other twice that way.
+
+| Where to read more | |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | the design reference — palette, build rules, the state model, hard-won failure classes |
-| [`CONTEXT.md`](CONTEXT.md) | where things stand right now and what's next, for picking the project back up cold |
-| [`SPRITE_CONTRACT.md`](SPRITE_CONTRACT.md) | the exact Blender ↔ app interface (canvas size, ground line, naming) |
+| [`CLAUDE.md`](CLAUDE.md) | the design reference — palette, build rules, the state model, and every failure class that got us here |
+| [`SPRITE_CONTRACT.md`](SPRITE_CONTRACT.md) | the exact Blender ↔ app interface: canvas size, ground line, naming |
+| [`CONTEXT.md`](CONTEXT.md) | where things stand and what's next |
 
-### Zero dependencies
+`loaf-showcase.html` is a self-contained tour of every state — a 1:1 diorama of a
+1280×800 Mac, no server and no external requests. Regenerate it with
+`python3 tools/build_showcase.py`, and edit `loaf-showcase.src.html` rather than
+the built file.
 
-No third-party Swift packages, no CocoaPods, no npm. Just AppKit, SwiftUI, and
-a folder of PNGs. She runs all day, every day, so every dependency would be
-memory held the whole time, launch cost on every login, and supply-chain
-surface for something that doesn't need it.
+## Known gaps
 
-**Zero third-party dependencies** stays true; **one permission requested** now —
-Reminders, for task load (no Accessibility, no Calendar, no network). Deny it and
-she just keeps using whatever weight the menu last set, no re-prompting.
-
-### Resource footprint
-
-Measured live on an M-series Mac, current build:
-
-| | CPU | Memory (RSS) |
-|---|---|---|
-| Pinned / holding still | ~1.5–2% | ~13 MB |
-| Wandering (default behaviour) | ~7–9% | ~25–30 MB |
-
-CPU varies with machine load and display refresh rate — the character view
-redraws on every frame it's animating, so a busy stroll costs more than
-standing still. No polling loops, and nothing that runs when she isn't
-visible. One exception to "no background network activity" as of `LLMBrain.
-swift`: roughly every 1.5–4 minutes, one small request to OpenRouter for a
-speech-bubble line, only while she's idle and only if an API key is set.
-Nothing else in the app makes network calls.
-
-### Regenerating the art
-
-```bash
-blender/build_all.sh
-```
-
-Needs Blender 5.2.0 at `/Applications/Blender.app/Contents/MacOS/Blender`
-(`brew install --cask blender`). Rebuilds every pose at every body weight and
-regenerates the review contact sheets in `blender/previews/`. Always run this
-script — never a single build script alone (see `CLAUDE.md` §3 for why: the
-poses have drifted apart from each other twice that way).
-
-### Packaging the `.app`
-
-```bash
-tools/package.sh          # dist/Loaf.app + dist/Loaf.dmg
-tools/package.sh app      # just the .app
-```
-
-Release build, an icon generated from `front_idle.png` (her front-facing,
-"personality" angle, not profile), and ad-hoc code signing. Picks up a real
-"Developer ID Application" identity from the keychain automatically if one's
-ever added (`LOAF_SIGN_ID` to override) — until then, ad-hoc.
-
-## Status
-
-Working today: dock stroll → dwell → corner sit → sleep, jumps, dragging,
-CPU/memory-driven stress reactions, sleeps early when you step away, a paw
-greeting on system wake and every 1-2h as a water-break nudge, LLM-generated
-speech bubbles (`LLMBrain.swift`, OpenRouter, falls back to a fixed pool),
-an immediate greeting on hover/click, task load driven live by Reminders,
-launch at login, a real installable `.app`, 72 sprites across 3 weights and
-8 states.
-
-Not done yet:
-
-- **The OpenRouter key lives in `LOAF_OPENROUTER_KEY` for now**, not
-  Keychain — fine for a terminal-launched dev build, but it won't be there
-  for "Launch at login" (no shell environment behind an app SMAppService
-  starts). `Keychain.swift` already exists and is checked as a fallback;
-  it just needs a menu item to actually write to it.
-- **No notarization** on the packaged `.app` — needs an Apple Developer
-  Program membership this project doesn't have. Ad-hoc signed works fine
-  locally; sharing it means a one-time right-click → Open for whoever runs it.
-- Two more moods (`chill`, `wake`) are designed-but-not-built; see `CLAUDE.md`
-  §6 for the intent behind them.
-
-## Project layout
-
-```
-blender/                 Blender build scripts — the source of truth for her model
-Sources/Loaf/            the Swift app
-  Resources/sprites/<weight>/   sprites Blender renders directly into
-tools/package.sh         builds the real, installable .app + .dmg
-tools/build_showcase.py  embeds the current sprites into loaf-showcase.html
-loaf-showcase.src.html   source for the showcase page (edit this, not the built .html)
-web/                     a Three.js live-rig previewer, for iterating on motion
-                         without a full Blender render (dev tool, not shipped)
-ref/lil-cleo/            reference desktop-pet implementation (gitignored, see CLAUDE.md §5)
-```
-
-See `CLAUDE.md` §2 for the full annotated tree.
-
-## The showcase page
-
-`loaf-showcase.html` is a self-contained tour of every state — a 1:1 diorama of
-a 1280×800 Mac with a real dock and menu bar, her drawn at her real 160×128, and
-twelve clickable states from idle through sleep, stress and the jump arc. Open it
-in a browser; it needs no server and has no external requests.
-
-It is generated, not hand-maintained:
-
-```bash
-python3 tools/build_showcase.py     # re-embeds the current sprites
-```
-
-Edit `loaf-showcase.src.html` and re-run that. Never edit `loaf-showcase.html`
-directly — it is ~6 MB of embedded base64 and any hand edit is lost on the next
-build. Re-run it after `blender/build_all.sh` or the page silently keeps whatever
-sprites it was built with.
+- The OpenRouter key reads from `LOAF_OPENROUTER_KEY`, not yet Keychain — fine
+  for a terminal launch, but not for "Launch at login", which has no shell
+  environment. `Keychain.swift` exists and is already checked as a fallback.
+- No notarization on the packaged `.app` — that needs an Apple Developer Program
+  membership this project doesn't have.
 
 ## Credits
 
-- [`lil-cleo`](https://github.com/ankitaggarwal/lil-cleo) (MIT) — the load-bearing
-  reference for the desktop-pet architecture: sprite cycling, edge-triggered
-  system monitoring, and the dock-wander state machine. `blender/catlib.py` is a
-  fork of its `bricklib`.
-- [`three.js`](https://threejs.org) (MIT) — vendored in `web/vendor/` for the
-  live-rig previewer. Dev tool only; it ships with nothing.
+[`lil-cleo`](https://github.com/ankitaggarwal/lil-cleo) (MIT) — the load-bearing
+reference for the desktop-pet architecture; `blender/catlib.py` forks its
+`bricklib`. [`three.js`](https://threejs.org) (MIT) — vendored in `web/` for the
+live-rig previewer, a dev tool that ships with nothing.
 
 ## License
 

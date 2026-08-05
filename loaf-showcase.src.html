@@ -423,7 +423,9 @@
     <div class="eyebrow">GENERATED SPRITES / REAL REACTIONS</div>
     <div class="header-row">
       <h1>Loaf</h1>
-      <div class="stat-pill">8 states × 3 weights = 72 sprites</div>
+      <!-- Not "8 × 3 = 72", which reads as a false sum: 8 states at 3 weights is
+           24 poses, and 72 is the file count once the cycles are included. -->
+      <div class="stat-pill">8 states · 3 weights · 72 sprites</div>
     </div>
     <p class="deck">
       A voxel cat who lives on the macOS dock. <strong>How much work you have queued
