@@ -98,7 +98,10 @@ SPRITE_CONTRACT.md     the Blender↔app interface. Read before touching either 
 Idea.md                original brain-dump. Superseded in places (see §6).
 veo-prompts.md         Google Veo prompt pack (promo footage only, not sprites)
 veo-output/ANALYSIS.md why Veo was disqualified as a sprite source
-*.html                 design studies — open in Safari, don't publish as Artifacts
+*.html                 design studies — open in Safari, don't publish as Artifacts.
+                       GITIGNORED since the repo went public: superseded by the
+                       decisions in §4, and history rather than source. Still on
+                       disk locally; in git history if ever needed
 loaf-showcase.src.html the showcase page's SOURCE. Edit this, never the built
                        .html — that one is 6MB of embedded base64 and any hand
                        edit is lost on the next build. Same src/built split as
@@ -114,6 +117,16 @@ ref/lil-cleo/          reference implementation, gitignored (see §5)
 
 `.gitignore` explains each exclusion inline. The short version: `.blend` files and
 ~100MB of exploration renders are all regenerable from the scripts.
+
+**Several entries above are on disk but no longer tracked.** When the repo went
+public it was cut to what is needed to build the app, render a sprite, or
+understand the design. Still here locally, still in git history, just not
+published: `explore_*.py`, `palette_sheet.py`, `walk.gif`, `veo-output/`,
+`veo-prompts.md`, `web/`, `Idea.md`, `CONTEXT.md`, the `*.html` design studies,
+and the built `loaf-showcase.html` (regenerate it with `tools/build_showcase.py`).
+Nothing in the build depends on any of them — verified, not assumed. That took
+the tracked tree from 16.9MB to 13.5MB, and what remains is 12.8MB of sprites
+plus the source.
 
 ---
 
@@ -347,12 +360,12 @@ there Y is screen-width.
 
 **Task load is live**, via `TaskLoadMonitor.swift`: incomplete Reminders →
 `settings.weight`, `requestFullAccessToReminders()` +
-`NSRemindersFullAccessUsageDescription` — a *different* permission from FlyThrough's
+`NSRemindersFullAccessUsageDescription` — a *different* permission from a sibling project's
 calendar access, and the one thing worth double-checking if this is ever ported
 elsewhere. The Weight menu remains a manual override for whenever access is denied
 or you just want to check the art without editing your real Reminders.
 
-A trap this needed that FlyThrough didn't: `swift run`/`swift build` produce a bare
+A trap this needed that a calendar-based sibling project didn't: `swift run`/`swift build` produce a bare
 binary with no `.app` bundle, so there is no Info.plist for TCC to read the usage
 string from — and without one, requesting access crashes outright rather than
 degrading gracefully. Fixed by embedding `Info.plist` into the binary's own
